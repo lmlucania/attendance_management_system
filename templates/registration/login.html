@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+
+
+{% block title %}
+    ログイン
+{% endblock %}
+{% block content %}
+    <div class="col-md-3 mx-auto mt-5">
+        <div class="card">
+            <div class="card-body">
+                <h1 class="h2">ログイン</h1>
+                <form method="POST">
+                <div class="form-group">
+                    {{ form.username }}
+                    {{ form.username.errors }}
+                </div>
+                <div class="form-group">
+                    {{ form.password }}
+                    {{ form.password.errors }}
+                </div>
+                <div class="text-danger">{{ form.non_field_errors.0 }}</div>
+                <div><a class="text-decoration-none" href="{% url 'accounts:pw_reset' %}">パスワードを忘れた方はこちらから</a></div>
+                <div class="d-flex flex-column mt-3">
+                    <button type="submit" class="btn btn-success btn-block" >ログイン</button>
+                </div>
+                <input type="hidden" name="next" value="{{ next }}" />
+                {% csrf_token %}
+                </form>
+            </div>
+        </div>
+    </div>
+{% endblock %}

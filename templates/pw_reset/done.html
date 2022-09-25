@@ -1,0 +1,17 @@
+{% extends 'base.html' %}
+{% block title %}
+    パスワード再設定
+{% endblock %}
+{% block content %}
+<div class="col-md-3 mx-auto mt-5">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="h2">メールを送信しました</h1>
+            <p class="alert px-2">
+                <b>{{ reset_email }}</b>にパスワード再設定用のURLを送信しました。 <br>
+                アクセスし、パスワードの再設定をしてください。
+            </p>
+        </div>
+    </div>
+</div>
+{% endblock %}

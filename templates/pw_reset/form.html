@@ -1,0 +1,24 @@
+{% extends 'base.html' %}
+{% block title %}
+    パスワード再設定
+{% endblock %}
+{% block content %}
+<div class="col-md-3 mx-auto mt-5">
+    <div class="card">
+        <div class="card-body">
+            <h1 class="h2">パスワード再設定</h1>
+            <form class="ui form" method="POST" action="">
+                <p class="alert px-2">
+                    登録済みのメールアドレスを入力してください。<br>
+                    パスワード再設定用のリンクをメールで送信します。
+                </p>
+                {{ form.email }}
+                <div class="d-flex flex-column mt-3">
+                    <button type="submit" class="btn btn-success btn-block" >メール送信</button>
+                </div>
+                {% csrf_token %}
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
