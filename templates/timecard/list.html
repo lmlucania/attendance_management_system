@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+
+{% block title %}
+    打刻一覧
+{% endblock %}
+{% block content %}
+<table class="table table-striped">
+    <tr>
+        <th>日付</th>
+        <th>種別</th>
+        <th>時刻</th>
+        <th style="width: 70px;"></th>
+    </tr>
+    {% for timecard in timecard_list %}
+    <tr>
+        <td>{{ timecard.stamped_time }}</td>
+        <td>{{ timecard.get_kind_display }}</td>
+        <td>{{ timecard.stamped_time }}</td>
+        <td>
+            <button class="btn btn-sm btn-danger" data-url="{% url 'timecard:timecard_delete' timecard.id %}">削除</button>
+        </td>
+    </tr>
+    {% endfor %}
+</table>
+    <form id="delete-form" method="post">{% csrf_token %}</form>
+{% endblock %}
+{% block script %}
+    <script type="application/javascript">
+    $(function() {
+        $('table button.btn-danger').on('click', function() {
+            if (!confirm('削除してよろしいですか？')) {
+                return;
+            }
+            $('#delete-form').prop('action', $(this).data('url')).submit();
+        });
+    })
+    </script>
+{% endblock %}

@@ -10,9 +10,9 @@ class LoginView(views.LoginView):
 
     def get_redirect_url(self):
         url = super().get_redirect_url()
-        # ログイン後のリダイレクト先
-        # if url == '':
-        #     url = reverse_lazy('')
+
+        if url == '':
+            url = reverse_lazy('timecard:dashboard')
 
         return url
 

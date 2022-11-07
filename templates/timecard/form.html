@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+
+{% block title %}
+    打刻登録・編集
+{% endblock %}
+{% block content %}
+    <form method="post">
+    {% csrf_token %}
+        <div id="box-identifier" class="form-group">
+            {{ form.kind.label_tag }}
+            {{ form.kind }}
+            <div class="invalid-feedback">{{ form.kind.errors.0 }}</div>
+        </div>
+        <div id="box-product" class="form-group">
+            {{ form.stamped_time.label_tag }}
+            {{ form.stamped_time }}
+            <div class="invalid-feedback">{{ form.stamped_time.errors.0 }}</div>
+        </div>
+        <div>
+            <button type="submit" class="btn btn-primary">作成</button>
+        </div>
+    </form>
+{% endblock %}

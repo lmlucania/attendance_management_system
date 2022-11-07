@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}
+    打刻画面
+{% endblock %}
+{% block content %}
+    <form action="{% url 'timecard:dashboard'%}" method="POST">
+        {% csrf_token %}
+        <p id="time"></p>
+        <button class="btn btn-success" type="submit" name="mode" value = "in" {{ can_click_in }}>出勤</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "out">退勤</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "reset" {{ can_click_reset }}>リセット</button>
+    </form>
+    <a href="{% url 'timecard:timecard_list' %}">一覧</a>
+    <a href="{% url 'timecard:timecard_create' %}">新規作成</a>
+{% endblock %}
+{% block script %}
+    <script>
+    $(function(){
+        setInterval(function(){
+            $('#time').text(new Date());
+            }, 1000);
+    });
+    </script>
+{% endblock %}
