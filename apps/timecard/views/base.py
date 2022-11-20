@@ -9,6 +9,7 @@ class TemplateView(LoginRequiredMixin, generic.TemplateView):
 
 
 class ListView(LoginRequiredMixin, generic.ListView):
+    search_form = None
 
     def get_template_names(self):
         return ['%s/list.html' % (self.object_list.model._meta.app_label)]
