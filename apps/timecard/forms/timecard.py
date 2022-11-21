@@ -4,6 +4,19 @@ from apps.timecard.forms import BaseForm
 from apps.timecard.models import TimeCard
 
 
+class TimeCardSearchForm(BaseForm):
+    month = forms.CharField(
+        label='表示月',
+        required=False,
+        max_length=7,
+        widget=forms.DateInput(attrs={'type': 'month'})
+    )
+
+    def __init__(self, *args, **kwargs):
+        self.base_fields['month'].initial = kwargs.pop('month').strftime('%Y-%m')
+        super().__init__(*args, **kwargs)
+
+
 class TimeCardForm(BaseForm, forms.ModelForm):
     def __init__(self, *args, **kwargs):
         self.today = timezone.datetime.today().astimezone(timezone.get_default_timezone()).date()
@@ -21,6 +34,6 @@ class TimeCardForm(BaseForm, forms.ModelForm):
         model = TimeCard
         fields = ('kind', 'stamped_time')
         widgets = {
-            'stamped_time': forms.DateInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%d %H:%m')
+            'stamped_time': forms.DateInput(attrs={'type': 'datetime-local'}, format='%Y-%m-%d %H:%M')
         }
 

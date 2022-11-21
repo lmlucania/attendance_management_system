@@ -37,7 +37,7 @@ class DashboardView(TemplateView):
         return TimeCard.objects.filter(user=self.request.user).latest('created_at').kind
 
     def _convert_stamping_kind(self, mode):
-        stamping_kind = TimeCard.Kind.RESET
+        stamping_kind = TimeCard.Kind.LEAVE
         if mode == 'in':
             stamping_kind = TimeCard.Kind.IN
 
@@ -50,8 +50,8 @@ class DashboardView(TemplateView):
         if self._latest_record_stamping_kind() != stamping_kind:
             return stamping_kind
 
-        if stamping_kind == TimeCard.Kind.RESET:
+        if stamping_kind == TimeCard.Kind.LEAVE:
             return
 
         elif stamping_kind == TimeCard.Kind.IN:
-            return TimeCard.Kind.RESET
+            return TimeCard.Kind.LEAVE

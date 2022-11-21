@@ -11,7 +11,7 @@
         <button class="btn btn-success" type="submit" name="mode" value = "out">退勤</button>
         <button class="btn btn-success" type="submit" name="mode" value = "reset" {{ can_click_reset }}>リセット</button>
     </form>
-    <a href="{% url 'timecard:timecard_list' %}">一覧</a>
+    <a href="{% url 'timecard:timecard_monthly_report' %}">一覧</a>
     <a href="{% url 'timecard:timecard_create' %}">新規作成</a>
 {% endblock %}
 {% block script %}

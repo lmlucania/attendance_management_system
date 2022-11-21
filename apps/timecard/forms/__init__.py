@@ -1,4 +1,4 @@
 from .base import BaseForm
-from .timecard import TimeCardForm
+from .timecard import TimeCardForm, TimeCardSearchForm
 
-__all__ = ['BaseForm', 'TimeCardForm']
+__all__ = ['BaseForm', 'TimeCardForm', 'TimeCardSearchForm']

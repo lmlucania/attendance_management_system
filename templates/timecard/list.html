@@ -5,17 +5,33 @@
 {% endblock %}
 {% block content %}
 <table class="table table-striped">
+        <div>
+            <a class="btn btn-sm btn-success" href="{% url 'timecard:timecard_monthly_report' %}?month={{ last_month }}">先月</a>
+            {{ first_day }} ~ {{ last_day }}
+            <a class="btn btn-sm btn-success" href="{% url 'timecard:timecard_monthly_report' %}?month={{ next_month }}">次月</a>
+            <button class="btn btn-sm btn-primary" id="export">Excel出力</button>
+        </div>
+        <div>
+            <div>表示月
+            {{ search_form.month }}
+            </div>
+            <div class="col-sm-12 text-right">
+                <button class="btn btn-primary px-4" id="search">検索</button>
+            </div>
+        </div>
     <tr>
-        <th>日付</th>
         <th>種別</th>
-        <th>時刻</th>
+        <th>打刻時刻</th>
+        <th style="width: 70px;"></th>
         <th style="width: 70px;"></th>
     </tr>
     {% for timecard in timecard_list %}
     <tr>
-        <td>{{ timecard.stamped_time }}</td>
         <td>{{ timecard.get_kind_display }}</td>
         <td>{{ timecard.stamped_time }}</td>
+        <td>
+            <a class="btn btn-sm btn-success" href="{% url 'timecard:timecard_update' timecard.id %}">編集</a>
+        </td>
         <td>
             <button class="btn btn-sm btn-danger" data-url="{% url 'timecard:timecard_delete' timecard.id %}">削除</button>
         </td>
@@ -33,6 +49,14 @@
             }
             $('#delete-form').prop('action', $(this).data('url')).submit();
         });
+        $('#search').on('click', function(){
+            let month = $('#id_month').val();
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + month;
+        })
+        $('#export').on('click', function(){
+            let month = $('#id_month').val();
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + month + "&mode=export";
+        })
     })
     </script>
 {% endblock %}
