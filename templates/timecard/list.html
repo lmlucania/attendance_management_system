@@ -20,20 +20,24 @@
             </div>
         </div>
     <tr>
-        <th>種別</th>
-        <th>打刻時刻</th>
+        <th>日付</th>
+        <th>出勤時刻</th>
+        <th>退勤時刻</th>
+        <th>勤務時間</th>
         <th style="width: 70px;"></th>
         <th style="width: 70px;"></th>
     </tr>
-    {% for timecard in timecard_list %}
+    {% for day_report in monthly_report %}
     <tr>
-        <td>{{ timecard.get_kind_display }}</td>
-        <td>{{ timecard.stamped_time }}</td>
+        <td>{{ day_report.day }}</td>
+        <td>{{ day_report.start_time }}</td>
+        <td>{{ day_report.end_time }}</td>
+        <td>{{ day_report.work_hour }}</td>
         <td>
-            <a class="btn btn-sm btn-success" href="{% url 'timecard:timecard_update' timecard.id %}">編集</a>
+{#            <a class="btn btn-sm btn-success" href="{% url 'timecard:timecard_update' timecard.id %}">編集</a>#}
         </td>
         <td>
-            <button class="btn btn-sm btn-danger" data-url="{% url 'timecard:timecard_delete' timecard.id %}">削除</button>
+{#            <button class="btn btn-sm btn-danger" data-url="{% url 'timecard:timecard_delete' timecard.id %}">削除</button>#}
         </td>
     </tr>
     {% endfor %}
@@ -50,12 +54,12 @@
             $('#delete-form').prop('action', $(this).data('url')).submit();
         });
         $('#search').on('click', function(){
-            let month = $('#id_month').val();
-            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + month;
+            let searchMonth = $('#id_month').val();
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + searchMonth;
         })
         $('#export').on('click', function(){
-            let month = $('#id_month').val();
-            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + month + "&mode=export";
+            let exportMonth = $('#id_month').val().replace('-', '');
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + exportMonth + "&mode=export";
         })
     })
     </script>

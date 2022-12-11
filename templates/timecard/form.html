@@ -6,16 +6,11 @@
 {% block content %}
     <form method="post">
     {% csrf_token %}
-        <div id="box-identifier" class="form-group">
-            {{ form.kind.label_tag }}
-            {{ form.kind }}
-            <div class="invalid-feedback">{{ form.kind.errors.0 }}</div>
-        </div>
-        <div id="box-product" class="form-group">
-            {{ form.stamped_time.label_tag }}
-            {{ form.stamped_time }}
-            <div class="invalid-feedback">{{ form.stamped_time.errors.0 }}</div>
-        </div>
+        {{ formset.non_form_errors }}
+        {{ formset.management_form }}
+        {% for form in sorted_formset %}
+            <div>{{ form }}</div>
+        {% endfor %}
         <div>
             <button type="submit" class="btn btn-primary">作成</button>
         </div>

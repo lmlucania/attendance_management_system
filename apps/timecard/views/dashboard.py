@@ -1,5 +1,7 @@
 from django.shortcuts import redirect
+from django.utils import timezone
 from django.urls import reverse
+from dateutil.relativedelta import relativedelta
 
 from .base import TemplateView
 from apps.timecard.models import TimeCard
@@ -13,7 +15,7 @@ class DashboardView(TemplateView):
         if 'mode' not in self.request.POST:
             return super().get(request, *args, **kwargs)
 
-        stamping_kind = self._validate_double_stamping(self._convert_stamping_kind(self.request.POST['mode']))
+        stamping_kind = self._validate_stamping(self._convert_stamping_kind(self.request.POST['mode']))
         if stamping_kind:
             TimeCard.objects.create(user=self.request.user, kind=stamping_kind)
 
@@ -21,37 +23,33 @@ class DashboardView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['can_click_in'] = ''
-        context['can_click_reset'] = 'disabled'
-
-        if self._latest_record_stamping_kind() == TimeCard.Kind.IN:
-            context['can_click_in'] = 'disabled'
-            context['can_click_reset'] = ''
+        # context['can_click_in'] = ''
+        # context['can_click_reset'] = 'disabled'
+        #
+        # if self._latest_record_stamping_kind() == TimeCard.Kind.IN:
+        #     context['can_click_in'] = 'disabled'
+        #     context['can_click_reset'] = ''
 
         return context
 
-    def _latest_record_stamping_kind(self):
-        if not TimeCard.objects.filter(user=self.request.user).exists():
+    def _convert_stamping_kind(self, mode):
+        if type(mode) != str:
             return
 
-        return TimeCard.objects.filter(user=self.request.user).latest('created_at').kind
+        try:
+            return TimeCard.Kind[mode.upper()]
 
-    def _convert_stamping_kind(self, mode):
-        stamping_kind = TimeCard.Kind.LEAVE
-        if mode == 'in':
-            stamping_kind = TimeCard.Kind.IN
+        except KeyError:
+            return
 
-        elif mode == 'out':
-            stamping_kind = TimeCard.Kind.OUT
+    def _validate_stamping(self, stamping_kind):
+        today = timezone.datetime.today().astimezone(timezone.get_default_timezone()).date()
+        today_query = TimeCard.objects.filter(user=self.request.user, stamped_time__gte=today,
+                                              stamped_time__lt=today + relativedelta(days=1))
+        if today_query.filter(kind=stamping_kind).exists():
+            return
+
+        if stamping_kind == TimeCard.Kind.OUT:
+            return today_query.filter(kind=TimeCard.Kind.IN).exists()
 
         return stamping_kind
-
-    def _validate_double_stamping(self, stamping_kind):
-        if self._latest_record_stamping_kind() != stamping_kind:
-            return stamping_kind
-
-        if stamping_kind == TimeCard.Kind.LEAVE:
-            return
-
-        elif stamping_kind == TimeCard.Kind.IN:
-            return TimeCard.Kind.LEAVE
