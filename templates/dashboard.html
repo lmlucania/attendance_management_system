@@ -7,12 +7,15 @@
     <form action="{% url 'timecard:dashboard'%}" method="POST">
         {% csrf_token %}
         <p id="time"></p>
-        <button class="btn btn-success" type="submit" name="mode" value = "in" {{ can_click_in }}>出勤</button>
-        <button class="btn btn-success" type="submit" name="mode" value = "out">退勤</button>
-        <button class="btn btn-success" type="submit" name="mode" value = "reset" {{ can_click_reset }}>リセット</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "in" {{ btn_in_attr }}>出勤</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "out" {{ btn_out_attr }}>退勤</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "enter_break" {{ btn_enter_break_attr }}>休憩開始</button>
+        <button class="btn btn-success" type="submit" name="mode" value = "end_break" {{ btn_end_break_attr }}>休憩終了</button>
     </form>
     <a href="{% url 'timecard:timecard_monthly_report' %}">一覧</a>
-    <a href="{% url 'timecard:timecard_create' %}">新規作成</a>
+    {% if user.is_manager %}
+        <a href="{% url 'timecard:timecard_process_month_list' %}">承認一覧</a>
+    {% endif %}
 {% endblock %}
 {% block script %}
     <script>
