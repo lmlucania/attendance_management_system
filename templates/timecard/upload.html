@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}
+    アップロード
+{% endblock %}
+{% block content %}
+    <form id="upload-form" method="post" enctype="multipart/form-data">{% csrf_token %}
+        {{ upload_form.file }}
+        <div class="invalid-feedback">{{ upload_form.file.errors.0 }}</div>
+        <button class="btn btn-sm btn-primary" id="upload" data-url="{% url 'timecard:timecard_upload' %}">Excel取込</button>
+    </form>
+{% endblock %}
+{% block script %}
+    <script type="application/javascript">
+      window.onload = function() {
+    document.getElementById("upload").disabled = true;
+  }
+    $(function() {
+        $('input:file').change(
+        function(){
+            if ($(this).val()) {
+                $('#upload').attr('disabled',false);
+            }
+        });
+        $('#upload').on('click', function() {
+            $('#upload-form').prop('action', $(this).data('url')).submit();
+        });
+    })
+    </script>
+{% endblock %}

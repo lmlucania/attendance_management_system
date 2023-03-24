@@ -1,5 +1,7 @@
 from dateutil.relativedelta import relativedelta
+from django.core.validators import FileExtensionValidator
 from django import forms
+from django.db import transaction
 from django.forms import BaseModelFormSet, modelformset_factory
 from apps.timecard.forms import BaseForm
 from apps.timecard.models import TimeCard
@@ -121,3 +123,20 @@ class BaseTimeCardFormSet(BaseModelFormSet):
 
 TimeCardFormSet = \
     modelformset_factory(TimeCard, form=TimeCardForm, max_num=4, extra=4, formset=BaseTimeCardFormSet, can_delete=True)
+
+class UploadFileForm(BaseForm):
+    LIMIT_SIZE = 2 * 10 * 10 ** 3
+    file = forms.FileField(
+        label='アップロードファイル',
+        allow_empty_file=False,
+        validators = [
+            FileExtensionValidator(['xlsx'], message='許可されていないファイルが指定されました。Excelファイルを選択してください。')
+        ])
+
+    def clean_file(self):
+        file = self.cleaned_data['file']
+
+        if file.size > self.LIMIT_SIZE:
+            raise forms.ValidationError('ファイルサイズが大きすぎます。 20KB以下のファイルを指定してください。')
+
+        return file
