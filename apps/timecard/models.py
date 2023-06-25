@@ -26,8 +26,22 @@ class TimeCard(models.Model):
     state = models.CharField(verbose_name='ステータス', max_length=1, choices=State.choices, default=State.NEW)
 
     created_at = models.DateTimeField(verbose_name='登録日時', auto_now_add=True)
-    updated_at = models.DateTimeField(verbose_name='更新日時', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='更新日時', auto_now=True)
 
     class Meta:
         db_table = 'timecard'
         verbose_name = 'タイムカード'
+
+
+class TimeCardSummary(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, related_name='timecardsummary', verbose_name='ユーザー')
+    total_work_hours = models.CharField(verbose_name='総労働時間', max_length=10)
+    total_break_hours = models.CharField(verbose_name='総休暇時間', max_length=10)
+    work_days_flag = models.PositiveIntegerField(verbose_name='出勤日フラグ')
+    month = models.CharField(verbose_name='対象月', max_length=6)
+    created_at = models.DateTimeField(verbose_name='登録日時', auto_now_add=True)
+    updated_at = models.DateTimeField(verbose_name='更新日時', auto_now=True)
+
+    class Meta:
+        db_table = 'timecard_summary'
+        verbose_name = 'サマリ'
