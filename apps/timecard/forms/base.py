@@ -1,4 +1,8 @@
+from datetime import datetime
+import re
+
 from django import forms
+from django.utils import timezone
 
 
 class BaseForm(forms.Form):
@@ -21,3 +25,35 @@ class BaseForm(forms.Form):
                 class_list.append('is-invalid')
 
             field.widget.attrs['class'] = ' '.join(class_list)
+
+
+class SplitDateTimeWidget(forms.SplitDateTimeWidget):
+    def value_from_datadict(self, data, files, name):
+        date_str, time_str = super().value_from_datadict(data, files, name)
+
+        if not date_str and not time_str:
+            return
+
+        value = (date_str or '') + (time_str or '')
+        try:
+            if self.is_HMS(time_str):
+                return datetime.strptime(value, '%Y-%m-%d%H:%M:%S').astimezone(timezone.get_default_timezone())
+            elif self.is_HM(time_str):
+                return datetime.strptime(value, '%Y-%m-%d%H:%M').astimezone(timezone.get_default_timezone())
+            return value
+        except:
+            return value
+
+    def is_HMS(self, time_str):
+        pattern = r'^((0?|1)[0-9]|2[0-3]):[0-5][0-9]:[0-5][0-9]$'
+        return re.compile(pattern).match(time_str)
+
+    def is_HM(self, time_str):
+        pattern = r'^((0?|1)[0-9]|2[0-3]):[0-5][0-9]$'
+        return re.compile(pattern).match(time_str)
+
+    def decompress(self, value):
+        try:
+            return super().decompress(value)
+        except:
+            return value
