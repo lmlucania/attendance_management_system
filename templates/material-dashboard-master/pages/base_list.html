@@ -1,0 +1,89 @@
+{% extends "material-dashboard-master/pages/base.html" %}
+
+{% block title %}
+{% endblock %}
+{% block page_title %}
+{% endblock %}
+{% block content %}
+      <div class="row">
+        <div class="col-12">
+          <div class="card my-4">
+          {% block card_header %}
+          {% endblock %}
+
+            <div class="card-body px-3 pb-2">
+            {% block card_body %}
+            {% endblock %}
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-xs font-weight-bolder opacity-7">日付</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">　出勤　</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">　退勤　</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩開始</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩終了</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">実働時間</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩時間</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for day_report in monthly_report %}
+                    <tr>
+                      <td class="my-auto">
+                          <h6 class="text-sm mb-0 {% if day_report.day_kind != '平日' %}text-danger{% endif %}">{{ day_report.date }}</h6>
+                          {% if day_report.holiday_name %}
+                          <p class="text-xs text-secondary text-danger mb-0">{{ day_report.holiday_name}}</p>
+                          {% endif %}
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                      {% if day_report.start_work == '' %}
+                        <p class="text-sm font-weight-bold mb-0">--:--</p>
+                      {% else %}
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.start_work|date:"H:i" }}</h6>
+                      {% endif %}
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                      {% if day_report.end_work == '' %}
+                        <p class="text-sm font-weight-bold mb-0">--:--</p>
+                      {% else %}
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.end_work|date:"H:i" }}</h6>
+                      {% endif %}
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                      {% if day_report.enter_break == '' %}
+                        <p class="text-sm font-weight-bold mb-0">--:--</p>
+                      {% else %}
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.enter_break|date:"H:i" }}</h6>
+                      {% endif %}
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                      {% if day_report.end_break == '' %}
+                        <p class="text-sm font-weight-bold mb-0">--:--</p>
+                      {% else %}
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.end_break|date:"H:i" }}</h6>
+                      {% endif %}
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.work_hours }}</h6>
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <h6 class="text-sm font-weight-bold mb-0">{{ day_report.break_hours }}</h6>
+                      </td>
+                      <td class="align-middle">
+                        {% block table_right %}
+                        {% endblock %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}
+{% block script %}
+{% endblock %}

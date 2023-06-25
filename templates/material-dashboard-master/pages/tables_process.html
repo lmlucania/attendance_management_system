@@ -1,0 +1,54 @@
+{% extends "material-dashboard-master/pages/base.html" %}
+
+{% block title %}
+    承認待ち一覧
+{% endblock %}
+{% block page_title %}
+    承認待ち一覧
+{% endblock %}
+{% block content %}
+      <div class="row">
+        <div class="col-12">
+          <div class="card my-4">
+            <div class="card-body px-3 pb-2">
+            {% for msg in promote_err_msg %}
+              <h6 class="text-danger">{{ msg }}</h6>
+            {% endfor %}
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-xs font-weight-bolder opacity-7">申請者</th>
+                      <th class="w-60 text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">申請月</th>
+                      <th class="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for process_month in process_month_list %}
+                    <tr>
+                      <td class="my-auto">
+                          <h6 class="text-sm mb-0">{{ process_month.user_name }}</h6>
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                        <p class="text-sm font-weight-bold mb-0">{{ process_month.date_str }}</p>
+                      </td>
+                      <td class="align-middle">
+                          <a href="{% url 'timecard:timecard_process_monthly_report' %}{{ process_month.param }}";  class="text-secondary font-weight-bold text-xs " data-toggle="tooltip">
+                              <i class="material-icons text-sm me-2">info</i>
+                              詳細
+                          </a>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                        <td class="font-weight-bold mb-0">承認待ちの勤怠がありません。</td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}

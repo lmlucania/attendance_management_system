@@ -1,25 +1,64 @@
-{% extends "base.html" %}
+{% extends "material-dashboard-master/pages/default.html" %}
 
-{% block title %}
-    打刻登録・編集
-{% endblock %}
 {% block content %}
+    <h3 class="mb-3">{{ edit_date|date:'Y/m/d' }}({{ DOW }})</h3>
     <form method="post">
     {% csrf_token %}
-        {{ formset.non_form_errors }}
+        <div class="text-danger">{{ formset.non_form_errors.0 }}</div>
         {{ formset.management_form }}
         {% for form in formset.forms %}
-            <div>{{ form }}</div>
+            <div class="row">
+                <div class="col-5 col-md-5 col-lg-5">
+                    <div class="input-group input-group-outline">
+                    {{ form.kind }}
+                    <div class="invalid-feedback">{{ form.kind.errors.0 }}</div>
+                    </div>
+                </div>
+                <div class="col-4 col-md-5 col-lg-5">
+                    <div class="input-group input-group-outline">
+                    {{ form.stamped_time }}
+                    <div class="invalid-feedback">{{ form.stamped_time.errors.0 }}</div>
+                    </div>
+                </div>
+                <div class="col-3 col-md-2 col-lg-2">
+                    <div class="form-control text-center">
+                        <label class="form-check-label">
+                        {{ form.DELETE }}
+                        {{ form.DELETE.label }}
+                        </label>
+                    </div>
+                </div>
+                {{ form.id }}
+            </div>
         {% endfor %}
-        <div>
-            <button type="submit" class="btn btn-primary">作成</button>
+        <div class="text-center mt-3">
+            <button type="button" class="btn btn-dark me-3" id="close">閉じる</button>
+            <button type="submit" class="btn btn-info">登録</button>
         </div>
     </form>
 {% endblock %}
 {% block script %}
     <script>
-$(function(){
-  {#$("form select > option:not(:selected)").attr('hidden', 'hidden');#}
-})
+    $(function() {
+        $("form").submit(function() {
+            let editDate = '{{ edit_date|date:'Y-m-d' }}';
+            let formCount = $('#id_form-TOTAL_FORMS').val();
+            for (let formIndex = 0; formIndex < formCount; formIndex++) {
+                debugger;
+                if ($(`#id_form-${formIndex}-stamped_time_1`).val() !== ''){
+                    $(`#id_form-${formIndex}-stamped_time_0`).val(editDate);
+                } else {
+                    $(`#id_form-${formIndex}-stamped_time_0`).val('');
+                }
+              }
+        });
+        {% if 'success' in request.session or 'error' in request.session %}
+            parent.$('.EditModal').modaal('close');
+            parent.location.reload();
+        {% endif %}
+        $('#close').on('click', function() {
+          parent.$('.EditModal').modaal('close');
+        })
+    });
     </script>
 {% endblock %}

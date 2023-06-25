@@ -1,0 +1,189 @@
+{% extends "material-dashboard-master/pages/base.html" %}
+
+{% block title %}
+    打刻一覧
+{% endblock %}
+{% block page_title %}
+    {{ BOM }}〜{{ EOM }}
+{% endblock %}
+{% block content %}
+      <div class="row">
+        <div class="col-12">
+          <div class="card my-4">
+              <div class="card-header pb-0">
+                  <div class="row">
+                    <div class="col-4 col-md-4 col-lg-2 d-flex align-items-center">
+                        <div class="input-group input-group-outline">
+                        {{ search_form.month }}
+                        </div>
+                    </div>
+                    <div class="col-6 col-md-4 col-lg-2">
+                        {% if state == '0' %}
+                            <a class="btn btn-info mb-0" data-bs-toggle="modal" data-bs-target="#promoteModal">
+                                勤怠を締める
+                            </a>
+                        {% elif state == '1' %}
+                            <a class="btn btn-outline-info mb-0 disabled">
+                            申請中
+                            </a>
+                        {% elif state == '2' %}
+                            <a class="btn btn-outline-info mb-0 disabled">
+                            承認済み
+                             </a>
+                        {% endif %}
+                    </div>
+
+                    <!-- Modal -->
+                    <div class="modal fade" id="promoteModal" tabindex="-1" role="dialog" aria-labelledby="promoteModalLabel" aria-hidden="true">
+                      <div class="modal-dialog modal-dialog-centered" role="document">
+                        <div class="modal-content">
+                          <div class="modal-header">
+                            <h5 class="modal-title font-weight-normal" id="promoteModalLabel">{{ BOM|date:"Y年n月" }}の勤怠申請</h5>
+                            <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
+                              <span aria-hidden="true">&times;</span>
+                            </button>
+                          </div>
+                          <div class="modal-body">
+                            {{ BOM|date:"Y年n月" }}の勤怠を申請します。よろしいですか？
+                          </div>
+                          <div class="modal-footer">
+                            <a type="button" class="btn bg-gradient-secondary" data-bs-dismiss="modal">閉じる</a>
+                            <a type="button" class="btn bg-gradient-info" href="javascript:Promote();">申請する</a>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+
+                    <div class="col-2 col-md-4 col-lg-8 text-end my-auto">
+                        <div class="dropdown float-lg-end pe-4">
+                            <a class="cursor-pointer" id="dropdownTable" data-bs-toggle="dropdown" aria-expanded="false">
+                              <i class="fa fa-ellipsis-v text-secondary"></i>
+                            </a>
+                            <ul class="dropdown-menu px-2 py-3 ms-sm-n4 ms-n5" aria-labelledby="dropdownTable">
+                              <li><a class="dropdown-item border-radius-md" href="javascript:Export();">Excel出力</a></li>
+                              <li><a class="dropdown-item border-radius-md UploadModal" href="{% url 'timecard:timecard_upload' %}">Excel取込</a></li>
+                            </ul>
+                        </div>
+                    </div>
+                  </div>
+              </div>
+
+            <div class="card-body px-3 pb-2">
+            {% for msg in promote_err_msg %}
+              <h6 class="text-danger">{{ msg }}</h6>
+            {% endfor %}
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="text-uppercase text-xs font-weight-bolder opacity-7">日付</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">　出勤　</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">　退勤　</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩開始</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩終了</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">実働時間</th>
+                      <th class="text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">休憩時間</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for day_report in monthly_report %}
+                    <tr>
+                      <td class="my-auto">
+                          <h6 class="text-sm mb-0 {% if day_report.day_kind != '平日' %}text-danger{% endif %}">{{ day_report.date }}</h6>
+                          <p class="text-xs text-secondary text-danger mb-0">{% if day_report.holiday_name %}{{ day_report.holiday_name}}{% endif %}</p>
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                        <p class="text-sm font-weight-bold mb-0">{% if day_report.start_work == '' %}--:--{% else %}{{ day_report.start_work|date:"H:i" }}{% endif %}</p>
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                        <span class="text-sm font-weight-bold mb-0">{% if day_report.end_work == '' %}--:--{% else %}{{ day_report.end_work|date:"H:i" }}{% endif %}</span>
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <span class="text-sm font-weight-bold mb-0">{% if day_report.enter_break == '' %}--:--{% else %}{{ day_report.enter_break|date:"H:i" }}{% endif %}</span>
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <span class="text-sm font-weight-bold mb-0">{% if day_report.end_break == '' %}--:--{% else %}{{ day_report.end_break|date:"H:i" }}{% endif %}</span>
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <span class="text-sm font-weight-bold mb-0">{{ day_report.work_hours }}</span>
+                      </td>
+                      <td  class="align-middle text-center text-sm">
+                        <span class="text-sm font-weight-bold mb-0">{{ day_report.break_hours }}</span>
+                      </td>
+                      <td class="align-middle">
+                          {% if state == '0' %}
+                          <a href="{% url 'timecard:timecard_edit' %}?date={{ BOM|date:"Ym" }}{{ day_report.day }}";  class="text-secondary font-weight-bold text-xs EditModal" data-toggle="tooltip" id="edit" value={{ day_report.day }}>
+                              <i class="material-icons text-sm me-2">edit</i>
+                              編集
+                          </a>
+                          {% endif %}
+                      </td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}
+{% block script %}
+    <script>
+    $(document).ready(function () {
+        if (window !== window.parent) {
+            parent.$('.EditModal').modaal('close');
+            parent.location.reload();
+        }
+    });
+    $('.EditModal').modaal(
+        {
+            type: 'iframe',
+            animation_speed: 5,
+            hide_close: false,
+            width: 400,
+            height: 350
+        });
+    $('.UploadModal').modaal({
+            type: 'iframe',
+            animation_speed: 5,
+            hide_close: false,
+            width: 400,
+            height: 160
+    });
+    let displayMonth = $('#id_month').val().replace('-', '');
+    let YearMonth = '{{ BOM }}'.replace('日', '').replace(/[^0-9]/g, '/');
+    let YYYYMM = ConvertParam(new Date(YearMonth))
+    function ShowEditForm(day) {
+        let YearMonth = GetYearMonthByContext()
+        location.href = "{% url 'timecard:timecard_edit' %}?date=" + ConvertParam(new Date(YearMonth)) + day.toString().padStart(2, '0');
+    }
+    function Export(){
+        let YearMonth = GetYearMonthByContext()
+        location.href = "{% url 'timecard:timecard_export' %}?month=" + ConvertParam(new Date(YearMonth));
+    }
+    function Promote(){
+        location.href += "{% url 'timecard:timecard_monthly_report' %}?month=" + displayMonth + "&mode=promote";
+    }
+    $(function() {
+        $('#upload').on('click', function() {
+            $('#upload-form').prop('action', $(this).data('url')).submit();
+        });
+        $('#id_month').change(function(){
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + $('#id_month').val().replace('-', '');
+        })
+        $('#promote').on('click', function(){
+            location.href = "{% url 'timecard:timecard_monthly_report' %}?month=" + displayMonth + "&mode=promote";
+        })
+
+    })
+    function ConvertParam(date){
+        let month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return date.getFullYear() + month;
+    }
+    function GetYearMonthByContext(){
+        return '{{ BOM }}'.replace('日', '').replace(/[^0-9]/g, '/');
+    }
+    </script>
+{% endblock %}

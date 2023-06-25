@@ -1,9 +1,11 @@
 {% extends "base.html" %}
+{% load static %}
 
 {% block title %}
     打刻画面
 {% endblock %}
 {% block content %}
+    <img src="{% static "img/icon-alert.svg" %}" alt="My image"/>
     <form action="{% url 'timecard:dashboard'%}" method="POST">
         {% csrf_token %}
         <p id="time"></p>

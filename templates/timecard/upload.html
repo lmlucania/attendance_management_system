@@ -1,13 +1,10 @@
-{% extends "base.html" %}
+{% extends "material-dashboard-master/pages/default.html" %}
 
-{% block title %}
-    アップロード
-{% endblock %}
 {% block content %}
     <form id="upload-form" method="post" enctype="multipart/form-data">{% csrf_token %}
         {{ upload_form.file }}
         <div class="invalid-feedback">{{ upload_form.file.errors.0 }}</div>
-        <button class="btn btn-sm btn-primary" id="upload" data-url="{% url 'timecard:timecard_upload' %}">Excel取込</button>
+        <button class="btn btn-sm btn-info mt-2" id="upload" data-url="{% url 'timecard:timecard_upload' %}">Excel取込</button>
     </form>
 {% endblock %}
 {% block script %}
@@ -25,6 +22,10 @@
         $('#upload').on('click', function() {
             $('#upload-form').prop('action', $(this).data('url')).submit();
         });
+        {% if 'success' in request.session or 'error' in request.session %}
+            parent.$('.UploadModal').modaal('close');
+            parent.location.reload();
+        {% endif %}
     })
     </script>
 {% endblock %}
