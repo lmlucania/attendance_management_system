@@ -7,6 +7,7 @@ from django.urls import reverse_lazy
 class LoginView(views.LoginView):
     form_class = LoginForm
     redirect_authenticated_user = True
+    template_name = 'material-dashboard-master/pages/sign-in.html'
 
     def get_redirect_url(self):
         url = super().get_redirect_url()
