@@ -1,0 +1,54 @@
+name: Lint and Test
+
+on:
+  workflow_dispatch:
+  push:
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.7
+    services:
+      db:
+        image: postgres
+        env:
+          POSTGRES_NAME: test
+          POSTGRES_USER: test
+          POSTGRES_PASSWORD: test
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    steps:
+      - name: Get Python version
+        run: python -V
+      - name: Checkout
+        uses: actions/checkout@v3
+      - name: Create .env file
+        run: |
+          touch .env
+          echo 'SECRET_KEY=test' >> .env
+          echo 'ALLOWED_HOSTS=localhost' >> .env
+          echo 'POSTGRES_PASSWORD=test' >> .env
+          echo 'DB_NAME=test' >> .env
+          echo 'DB_USER=test' >> .env
+          echo 'DB_PASSWORD=test' >> .env
+          echo 'DB_PORT=5432' >> .env
+          echo 'DB_HOST=db' >> .env
+          echo 'DEBUG=True' >> .env
+      - name: Install dependencies
+        run: |
+          pip install -r requirements.txt
+          pip install coverage
+      - name: Lint with flake8
+        uses: suo/flake8-github-action@releases/v1
+        with:
+          checkName: 'lint-and-test'
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Test
+        run: |
+          coverage run --source='.' --omit='manage.py','*/migrations/*','*/tests/*' manage.py test
+          coverage report
