@@ -54,6 +54,6 @@ class SplitDateTimeWidget(forms.SplitDateTimeWidget):
 
     def decompress(self, value):
         try:
-            return super().decompress(value)
+            return super().decompress(value.replace(second=0) if value else value)
         except:
             return value

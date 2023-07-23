@@ -37,6 +37,7 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
         context = super().get_context_data()
         context['search_form'] = self._get_search_form()
         context['promote_err_msg'] = self._get_promote_err_msg_by_session(self.request.session)
+        context['can_edit'] = self._get_can_edit()
 
         return context
 
@@ -52,6 +53,11 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
             promote_err_dict = session['promote_err_month_dict'][YYYYMM]
             return ['{}日：{}'.format(day, err_msg) for day, err_msg in promote_err_dict.items()]
 
+    def _get_can_edit(self):
+        today = timezone.datetime.today().astimezone(timezone.get_default_timezone())
+        first_day_next_month = today + relativedelta(months=1, day=1)
+        return self.EOM_by_url < first_day_next_month
+
     def _promote_process(self):
         url = reverse('timecard:timecard_monthly_report') + '?month=' + self.EOM_by_url.strftime('%Y%m')
         monthly_stamps_qs = self.get_queryset()
@@ -64,7 +70,7 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
             return redirect(url)
 
         promote_err_dict = {}
-        if self._validate_err_db_stamps(monthly_stamps_qs, promote_err_dict):
+        if self._is_valid_stamps_qs(monthly_stamps_qs, promote_err_dict):
             monthly_stamps_qs.update(state=TimeCard.State.PROCESSING)
             self.request.session['success'] = 'ステータスを{}に更新しました'.format(TimeCard.State.PROCESSING.label)
             return redirect(url)
@@ -73,34 +79,33 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
         self.request.session['promote_err_month_dict'] = {self.EOM_by_url.strftime('%Y%m'): promote_err_dict}
         return redirect(url)
 
-    def _validate_err_db_stamps(self, monthly_stamps_qs, promote_err_dict):
+    def _is_valid_stamps_qs(self, monthly_stamps_qs, promote_err_dict):
 
         work_days_list = self._get_work_days_by_qs(monthly_stamps_qs)
 
         for work_day in work_days_list:
             start_work, end_work, enter_break, end_break = self._get_daily_stamps_info(monthly_stamps_qs, work_day)
 
-            if start_work or end_work:
-                if not (start_work and end_work):
-                    promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_NEED_WORK_TIME
-                    continue
-
-                elif end_work < start_work:
-                    promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_WORK_TIME
-                    continue
-
-            if (enter_break == '') and (end_break == ''):
+            if not (start_work and end_work):
+                promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_NEED_WORK_TIME
                 continue
 
-            elif (enter_break == '') ^ (end_break == ''):
+            elif not (start_work < end_work):
+                promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_WORK_TIME
+                continue
+
+            if enter_break == end_break == '':
+                continue
+
+            if not (enter_break and end_break):
                 promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_NEED_BREAK_TIME
                 continue
 
-            elif end_break < enter_break:
+            elif not (enter_break < end_break):
                 promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_BREAK_TIME
                 continue
 
-            elif enter_break < start_work or end_work < end_break:
+            if not (start_work <= enter_break) or not (end_break <= end_work):
                 promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_BREAK_TIME_OUT_OF_RANGE
                 continue
 
@@ -277,8 +282,7 @@ class TimeCardEditView(TemplateView):
                 return
 
             obj = TimeCard.objects.get(id=form.instance.id)
-            if obj and obj.state != TimeCard.State.NEW:
-                return True
+            return obj and obj.state != TimeCard.State.NEW
 
 
 class TimeCardImportView(ExcelHandleView):

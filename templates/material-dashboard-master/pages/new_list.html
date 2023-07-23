@@ -75,7 +75,7 @@
 {% endblock %}
 
 {% block table_right %}
-    {% if state == '0' %}
+    {% if state == '0' and can_edit %}
       <a href="{% url 'timecard:timecard_edit' %}?date={{ BOM|date:"Ym" }}{{ day_report.day }}";  class="text-secondary font-weight-bold text-xs EditModal" data-toggle="tooltip" id="edit" value={{ day_report.day }}>
           <i class="material-icons text-sm me-2">edit</i>
           編集
