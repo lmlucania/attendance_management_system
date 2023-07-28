@@ -24,8 +24,14 @@ jobs:
     steps:
       - name: Get Python version
         run: python -V
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install git -y
       - name: Checkout
         uses: actions/checkout@v3
+      - name: Add safe directory
+        run: git config --global --add safe.directory $PWD
       - name: Create .env file
         run: |
           touch .env
@@ -41,13 +47,28 @@ jobs:
       - name: Install dependencies
         run: |
           pip install -r requirements.txt
-          pip install coverage
+          pip install coverage black isort
+      - name: Code Format
+        run: |
+          black . --line-length 120 --exclude migrations/
+          isort .
       - name: Lint with flake8
         uses: suo/flake8-github-action@releases/v1
         with:
           checkName: 'lint-and-test'
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Diff
+        id: diff
+        run: |
+          git add -N .
+          git diff --name-only --exit-code
+        continue-on-error: true
+      - name: Auto Commit & Push
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply Code Formatter Change
+        if: steps.diff.outcome == 'failure'
       - name: Test
         run: |
           coverage run --source='.' --omit='manage.py','*/migrations/*','*/tests/*' manage.py test

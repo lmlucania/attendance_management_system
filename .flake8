@@ -3,7 +3,11 @@ max-line-length = 120
 exclude = migrations
 max-complexity = 10
 ignore =
+    # E203 whitespace before ':'
+    E203,
     # E722 do not use bare 'except'
     E722,
+    # W503 line break before binary operator
+    W503,
     # W504 line break after binary operator
     W504
