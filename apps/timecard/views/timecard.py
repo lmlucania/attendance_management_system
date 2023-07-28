@@ -1,57 +1,60 @@
 import logging
-import urllib
 import re
+import urllib
 from datetime import datetime, time
 
+import jpholiday
+import openpyxl
+from dateutil.relativedelta import relativedelta
 from django.db import transaction
 from django.db.models import Q
 from django.db.models.functions import TruncMonth
 from django.http import HttpResponse
 from django.shortcuts import redirect, render
 from django.template.response import TemplateResponse
-from django.utils import timezone
 from django.urls import reverse, reverse_lazy
+from django.utils import timezone
 from django.views.generic import ListView
-from dateutil.relativedelta import relativedelta
-import jpholiday
-import openpyxl
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
-from .base import (TemplateView, SuperuserPermissionView, TimeCardBaseMonthlyReportView, ExcelHandleView, get_DOW,
-                   timedelta2str, get_toast_msg_by_session)
-from apps.timecard.models import TimeCard, TimeCardSummary
 from apps.accounts.models import User
-from apps.timecard.forms import TimeCardSearchForm, TimeCardFormSet, UploadFileForm
+from apps.timecard.forms import (TimeCardFormSet, TimeCardSearchForm,
+                                 UploadFileForm)
+from apps.timecard.models import TimeCard, TimeCardSummary
+
+from .base import (ExcelHandleView, SuperuserPermissionView, TemplateView,
+                   TimeCardBaseMonthlyReportView, get_DOW,
+                   get_toast_msg_by_session, timedelta2str)
 
 
 class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
-    template_name = 'material-dashboard-master/pages/new_list.html'
-    session_month_format = '%Y-%m-%d %H:%M:%S%z'
+    template_name = "material-dashboard-master/pages/new_list.html"
+    session_month_format = "%Y-%m-%d %H:%M:%S%z"
 
     def get_EOM_by_url(self):
-        if not self.request.GET.get('month') and self.request.session.get('month'):
-            return datetime.strptime(self.request.session['month'], self.session_month_format)
+        if not self.request.GET.get("month") and self.request.session.get("month"):
+            return datetime.strptime(self.request.session["month"], self.session_month_format)
         return super().get_EOM_by_url()
 
     def get_context_data(self):
         context = super().get_context_data()
-        context['search_form'] = self._get_search_form()
-        context['promote_err_msg'] = self._get_promote_err_msg_by_session(self.request.session)
-        context['can_edit'] = self._get_can_edit()
+        context["search_form"] = self._get_search_form()
+        context["promote_err_msg"] = self._get_promote_err_msg_by_session(self.request.session)
+        context["can_edit"] = self._get_can_edit()
 
         return context
 
     def _get_search_form(self):
         kwargs = {}
-        kwargs['initial'] = {'month': self.EOM_by_url.strftime('%Y-%m')}
-        self.request.session['month'] = self.EOM_by_url.strftime(self.session_month_format)
+        kwargs["initial"] = {"month": self.EOM_by_url.strftime("%Y-%m")}
+        self.request.session["month"] = self.EOM_by_url.strftime(self.session_month_format)
         return TimeCardSearchForm(**kwargs)
 
     def _get_promote_err_msg_by_session(self, session):
-        YYYYMM = self.EOM_by_url.strftime('%Y%m')
-        if session.get('promote_err_month_dict') and session['promote_err_month_dict'].get(YYYYMM):
-            promote_err_dict = session['promote_err_month_dict'][YYYYMM]
-            return ['{}日：{}'.format(day, err_msg) for day, err_msg in promote_err_dict.items()]
+        YYYYMM = self.EOM_by_url.strftime("%Y%m")
+        if session.get("promote_err_month_dict") and session["promote_err_month_dict"].get(YYYYMM):
+            promote_err_dict = session["promote_err_month_dict"][YYYYMM]
+            return ["{}日：{}".format(day, err_msg) for day, err_msg in promote_err_dict.items()]
 
     def _get_can_edit(self):
         today = timezone.datetime.today().astimezone(timezone.get_default_timezone())
@@ -59,28 +62,27 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
         return self.EOM_by_url < first_day_next_month
 
     def _promote_process(self):
-        url = reverse('timecard:timecard_monthly_report') + '?month=' + self.EOM_by_url.strftime('%Y%m')
+        url = reverse("timecard:timecard_monthly_report") + "?month=" + self.EOM_by_url.strftime("%Y%m")
         monthly_stamps_qs = self.get_queryset()
 
         if not monthly_stamps_qs.exists():
-            self.request.session['warning'] = '未打刻のため申請できません'
+            self.request.session["warning"] = "未打刻のため申請できません"
             return redirect(url)
         elif monthly_stamps_qs.exclude(state=TimeCard.State.NEW):
-            self.request.session['error'] = 'すでに申請済みです'
+            self.request.session["error"] = "すでに申請済みです"
             return redirect(url)
 
         promote_err_dict = {}
         if self._is_valid_stamps_qs(monthly_stamps_qs, promote_err_dict):
             monthly_stamps_qs.update(state=TimeCard.State.PROCESSING)
-            self.request.session['success'] = 'ステータスを{}に更新しました'.format(TimeCard.State.PROCESSING.label)
+            self.request.session["success"] = "ステータスを{}に更新しました".format(TimeCard.State.PROCESSING.label)
             return redirect(url)
 
-        self.request.session['warning'] = '入力時刻にエラーがあるため申請できません'
-        self.request.session['promote_err_month_dict'] = {self.EOM_by_url.strftime('%Y%m'): promote_err_dict}
+        self.request.session["warning"] = "入力時刻にエラーがあるため申請できません"
+        self.request.session["promote_err_month_dict"] = {self.EOM_by_url.strftime("%Y%m"): promote_err_dict}
         return redirect(url)
 
     def _is_valid_stamps_qs(self, monthly_stamps_qs, promote_err_dict):
-
         work_days_list = self._get_work_days_by_qs(monthly_stamps_qs)
 
         for work_day in work_days_list:
@@ -94,7 +96,7 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
                 promote_err_dict[work_day] = TimeCardFormSet.ERR_MSG_WORK_TIME
                 continue
 
-            if enter_break == end_break == '':
+            if enter_break == end_break == "":
                 continue
 
             if not (enter_break and end_break):
@@ -113,17 +115,16 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
 
 
 class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
-
     def get(self, request, *args, **kwargs):
         self.EOM_by_url = super().get_EOM_by_url(False)
 
         if self.EOM_by_url is None:
-            return redirect(reverse('timecard:timecard_monthly_report'))
+            return redirect(reverse("timecard:timecard_monthly_report"))
 
         wb = self._create_wb()
-        filename = 'タイムカード_' + self.EOM_by_url.strftime('%Y{0}%m{1}').format(*'年月') + '.xlsx'
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename={}'.format(urllib.parse.quote(filename))
+        filename = "タイムカード_" + self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月") + ".xlsx"
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = "attachment; filename={}".format(urllib.parse.quote(filename))
         wb.save(response)
 
         return response
@@ -131,7 +132,7 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
     def _create_wb(self):
         wb = openpyxl.Workbook()
         ws = wb.active
-        ws.page_setup.orientation = 'landscape'
+        ws.page_setup.orientation = "landscape"
         ws.page_setup.fitToWidth = 1
         ws.page_setup.fitToHeight = 0
         ws.sheet_properties.pageSetUpPr.fitToPage = True
@@ -157,31 +158,41 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
             day_kind = self._get_day_kind(DOW, day)
             start_time, end_time, enter_break, end_break = self._get_daily_stamps_info(monthly_stamps_qs, day)
 
-            ws.append([day, DOW, day_kind, self._local_time(start_time), self._local_time(end_time),
-                       self._local_time(enter_break), self._local_time(end_break), holiday_name])
+            ws.append(
+                [
+                    day,
+                    DOW,
+                    day_kind,
+                    self._local_time(start_time),
+                    self._local_time(end_time),
+                    self._local_time(enter_break),
+                    self._local_time(end_break),
+                    holiday_name,
+                ]
+            )
 
     def _format(self, timedelta):
         if type(timedelta) == str:
             return timedelta
 
-        pattern = r'^((0?|1)[0-9]|2[0-3]):[0-5][0-9]$'
+        pattern = r"^((0?|1)[0-9]|2[0-3]):[0-5][0-9]$"
         return re.compile(pattern).match(str(timedelta)).group()
 
     def _local_time(self, stamped_time):
         if stamped_time:
-            return timezone.localtime(stamped_time).strftime('%H:%M')
+            return timezone.localtime(stamped_time).strftime("%H:%M")
 
-        return ''
+        return ""
 
     def _write_header(self, ws):
-        ws[self.TITLE_CELL] = self.SHEET_HEADLINE.format(self.EOM_by_url.strftime('%Y{0}%m{1}').format(*'年月'))
+        ws[self.TITLE_CELL] = self.SHEET_HEADLINE.format(self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月"))
         ws[self.USER_NAME_CELL] = self.SHEET_USER_NAME.format(self.request.user.name)
 
         ws.append(self.SHEET_HEADER)
 
 
 class TimeCardEditView(TemplateView):
-    template_name = 'timecard/form.html'
+    template_name = "timecard/form.html"
 
     def dispatch(self, request, *args, **kwargs):
         self.date_by_url = self._get_date_by_url()
@@ -197,32 +208,32 @@ class TimeCardEditView(TemplateView):
     def post(self, request, *args, **kwargs):
         formset = self._get_formset(request.POST)
         if self._has_promoted_stamps(formset):
-            request.session['error'] = '申請中のため編集できません'
+            request.session["error"] = "申請中のため編集できません"
             return render(request, self.template_name)
 
         if not formset.is_valid():
             if not self.date_by_url:
-                return redirect(reverse('timecard:timecard_monthly_report'))
+                return redirect(reverse("timecard:timecard_monthly_report"))
 
             context = self.get_context_data(formset)
             return render(request, self.template_name, context)
 
-        delete_data = len([key for key in formset.data.keys() if 'DELETE' in key]) > 0
+        delete_data = len([key for key in formset.data.keys() if "DELETE" in key]) > 0
         saved_form_list = formset.save()
 
         if saved_form_list is False:
-            request.session['error'] = '更新に失敗しました'
+            request.session["error"] = "更新に失敗しました"
             return render(request, self.template_name)
 
         elif delete_data or len(saved_form_list) > 0:
-            request.session['success'] = '更新しました'
+            request.session["success"] = "更新しました"
             self._delete_promote_err_msg_by_session(request.session)
             return render(request, self.template_name)
 
-        return redirect(reverse('timecard:timecard_monthly_report'))
+        return redirect(reverse("timecard:timecard_monthly_report"))
 
     def _get_date_by_url(self):
-        param = self.request.GET.get('date')
+        param = self.request.GET.get("date")
         if not param:
             return
 
@@ -235,9 +246,9 @@ class TimeCardEditView(TemplateView):
 
     def get_context_data(self, formset=None, **kwargs):
         context = super().get_context_data(**kwargs)
-        context['formset'] = formset or self._get_formset(date=self.date_by_url, user=self.request.user)
-        context['edit_date'] = self.date_by_url.date()
-        context['DOW'] = get_DOW(self.date_by_url.date())
+        context["formset"] = formset or self._get_formset(date=self.date_by_url, user=self.request.user)
+        context["edit_date"] = self.date_by_url.date()
+        context["DOW"] = get_DOW(self.date_by_url.date())
         return context
 
     def _get_formset(self, *args, **kwargs):
@@ -251,27 +262,32 @@ class TimeCardEditView(TemplateView):
         if not self.date_by_url:
             return
 
-        if session.get('promote_err_month_dict') and \
-                session['promote_err_month_dict'].get(self.date_by_url.strftime('%Y%m')):
-            session['promote_err_month_dict'][self.date_by_url.strftime('%Y%m')].pop(str(self.date_by_url.day), None)
+        if session.get("promote_err_month_dict") and session["promote_err_month_dict"].get(
+            self.date_by_url.strftime("%Y%m")
+        ):
+            session["promote_err_month_dict"][self.date_by_url.strftime("%Y%m")].pop(str(self.date_by_url.day), None)
 
     def _can_edit(self):
         next_month = timezone.datetime.today().astimezone(timezone.get_default_timezone()).replace(
-            hour=0, minute=0, second=0, microsecond=0) + relativedelta(day=1, months=1)
+            hour=0, minute=0, second=0, microsecond=0
+        ) + relativedelta(day=1, months=1)
         if not self.date_by_url:
-            self.request.session['error'] = '不正な操作を検知しました'
+            self.request.session["error"] = "不正な操作を検知しました"
             return
 
         elif self.date_by_url >= next_month:
-            self.request.session['error'] = '来月以降の情報は編集できません'
+            self.request.session["error"] = "来月以降の情報は編集できません"
             return
 
-        daily_stamps_qs = TimeCard.objects.filter(stamped_time__gte=(self.date_by_url + relativedelta(day=1)),
-                                                  stamped_time__lt=(self.date_by_url + relativedelta(months=1, day=1)),
-                                                  user=self.request.user).exclude(state=TimeCard.State.NEW)
+        daily_stamps_qs = TimeCard.objects.filter(
+            stamped_time__gte=(self.date_by_url + relativedelta(day=1)),
+            stamped_time__lt=(self.date_by_url + relativedelta(months=1, day=1)),
+            user=self.request.user,
+        ).exclude(state=TimeCard.State.NEW)
         if daily_stamps_qs.exists():
-            self.request.session['error'] = '{}および{}の情報は更新できません'.format(
-                TimeCard.State.PROCESSING.label, TimeCard.State.APPROVED.label)
+            self.request.session["error"] = "{}および{}の情報は更新できません".format(
+                TimeCard.State.PROCESSING.label, TimeCard.State.APPROVED.label
+            )
             return
 
         return True
@@ -286,11 +302,11 @@ class TimeCardEditView(TemplateView):
 
 
 class TimeCardImportView(ExcelHandleView):
-    template_name = 'timecard/upload.html'
+    template_name = "timecard/upload.html"
     logger = logging.getLogger(__name__)
 
-    ERR_MSG_HEADER = 'エラー内容'
-    ERR_FORMAT = 'フォーマットはHH:MMで入力してください。'
+    ERR_MSG_HEADER = "エラー内容"
+    ERR_FORMAT = "フォーマットはHH:MMで入力してください。"
 
     def __init__(self):
         super().__init__()
@@ -299,31 +315,30 @@ class TimeCardImportView(ExcelHandleView):
         self.EOM_by_ws = None
 
     def get(self, *args, **kwargs):
-        return TemplateResponse(self.request, self.template_name, {'upload_form': UploadFileForm()})
+        return TemplateResponse(self.request, self.template_name, {"upload_form": UploadFileForm()})
 
     def post(self, request, *args, **kwargs):
         upload_form = self._get_upload_form()
         if not (upload_form.is_valid()):
-            return render(request, self.template_name, {'upload_form': upload_form})
+            return render(request, self.template_name, {"upload_form": upload_form})
 
-        wb = openpyxl.load_workbook(request.FILES['file'])
+        wb = openpyxl.load_workbook(request.FILES["file"])
 
         if self._can_import_wb(wb):
             self._import_data_by_wb(wb)
             return render(request, self.template_name)
 
-        if request.session.get('error'):
+        if request.session.get("error"):
             return render(request, self.template_name)
 
         err_response = self._create_err_response(wb)
         return err_response
 
     def _get_upload_form(self):
-        kwargs = {'data': self.request.POST, 'files': self.request.FILES}
+        kwargs = {"data": self.request.POST, "files": self.request.FILES}
         return UploadFileForm(**kwargs)
 
     def _can_import_wb(self, wb):
-
         try:
             ws = wb[self.SHEET_TITLE]
 
@@ -339,28 +354,29 @@ class TimeCardImportView(ExcelHandleView):
             return True
 
         except Exception as e:
-            self.request.session['error'] = '取込失敗しました'
-            self.logger.error(f'{e}', exc_info=True)
+            self.request.session["error"] = "取込失敗しました"
+            self.logger.error(f"{e}", exc_info=True)
             return
 
     def _invalid_ws_layout(self, ws):
         user_name = ws[self.USER_NAME_CELL].value[3:]
         if user_name != self.request.user.name:
-            self.request.session['error'] = '不正なシートのため取込できません'
+            self.request.session["error"] = "不正なシートのため取込できません"
             return True
 
         self.EOM_by_ws = self._get_EOM_by_ws(ws)
 
         # シートの月末日が正しいかチェックする
         if self.EOM_by_ws.day != ws.cell(row=ws.max_row, column=1).value:
-            self.request.session['error'] = '不正なシートのため取込できません'
+            self.request.session["error"] = "不正なシートのため取込できません"
             return True
 
         next_month = timezone.datetime.today().astimezone(timezone.get_default_timezone()).replace(
-            hour=0, minute=0, second=0, microsecond=0) + relativedelta(day=1, months=1)
+            hour=0, minute=0, second=0, microsecond=0
+        ) + relativedelta(day=1, months=1)
 
         if self.EOM_by_ws >= next_month:
-            self.request.session['error'] = '来月以降の情報は取込できません'
+            self.request.session["error"] = "来月以降の情報は取込できません"
             return True
 
         return False
@@ -400,7 +416,7 @@ class TimeCardImportView(ExcelHandleView):
         day_count = self.EOM_by_ws.day
         if day_count == empty_row_count:
             # 未入力の場合、取込した月の情報が全て削除されるためエラーにする
-            self.request.session['error'] = '未入力のため取込できません'
+            self.request.session["error"] = "未入力のため取込できません"
             return
 
         return day_count != (empty_row_count + valid_row_count)
@@ -423,10 +439,10 @@ class TimeCardImportView(ExcelHandleView):
         err_msg_cell.value = err_msg
         err_msg_cell.font = Font(name=self.FONT_NAME, size=9)
         for err_cell in err_cells:
-            err_cell.fill = PatternFill(patternType='solid', fgColor=self.YELLOW)
+            err_cell.fill = PatternFill(patternType="solid", fgColor=self.YELLOW)
 
     def _write_borders_ws(self, ws):
-        side = Side(style='thin', color=self.BLACK)
+        side = Side(style="thin", color=self.BLACK)
         for row in ws:
             row_num = row[0].row
 
@@ -436,7 +452,7 @@ class TimeCardImportView(ExcelHandleView):
             # ヘッダーから末日の行までループする
             for cell in row:
                 ws[cell.coordinate].border = Border(top=side, bottom=side, left=side, right=side)
-                ws[cell.coordinate].alignment = Alignment(horizontal='center', vertical='center', wrapText=True)
+                ws[cell.coordinate].alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
 
     def _cell_value2time(self, cell_value):
         if cell_value is None or type(cell_value) == time:
@@ -449,8 +465,8 @@ class TimeCardImportView(ExcelHandleView):
 
     def _get_EOM_by_ws(self, ws):
         value = ws[self.TITLE_CELL].value[6:]
-        month_str = value.replace('年', '').replace('月', '') + '01'
-        import_month = datetime.strptime(month_str, '%Y%m%d').astimezone(timezone.get_default_timezone())
+        month_str = value.replace("年", "").replace("月", "") + "01"
+        import_month = datetime.strptime(month_str, "%Y%m%d").astimezone(timezone.get_default_timezone())
         return import_month + relativedelta(months=1, day=1) - relativedelta(days=1)
 
     @transaction.atomic
@@ -468,10 +484,12 @@ class TimeCardImportView(ExcelHandleView):
                     day = row[0].value
 
                     stamped_date = self.EOM_by_ws + relativedelta(day=day)
-                    col_num_kind = {self.START_WORK_COL_NUM: TimeCard.Kind.IN,
-                                    self.END_WORK_COL_NUM: TimeCard.Kind.OUT,
-                                    self.ENTER_BREAK_COL_NUM: TimeCard.Kind.ENTER_BREAK,
-                                    self.END_BREAK_COL_NUM: TimeCard.Kind.END_BREAK}
+                    col_num_kind = {
+                        self.START_WORK_COL_NUM: TimeCard.Kind.IN,
+                        self.END_WORK_COL_NUM: TimeCard.Kind.OUT,
+                        self.ENTER_BREAK_COL_NUM: TimeCard.Kind.ENTER_BREAK,
+                        self.END_BREAK_COL_NUM: TimeCard.Kind.END_BREAK,
+                    }
 
                     for col_num in col_num_kind:
                         cell_value = row[col_num - 1].value
@@ -485,14 +503,15 @@ class TimeCardImportView(ExcelHandleView):
                     for stamp in stamp_list:
                         TimeCard.objects.create(kind=stamp[0], stamped_time=stamp[1], user=self.request.user)
 
-                self.request.session['success'] = '{}の取込が成功しました'.format(
-                    self.EOM_by_ws.strftime('%Y{0}%m{1}').format(*'年月'))
+                self.request.session["success"] = "{}の取込が成功しました".format(
+                    self.EOM_by_ws.strftime("%Y{0}%m{1}").format(*"年月")
+                )
 
-                if self.request.session.get('promote_err_month_dict'):
-                    self.request.session['promote_err_month_dict'].pop(self.EOM_by_ws.strftime('%Y%m'))
+                if self.request.session.get("promote_err_month_dict"):
+                    self.request.session["promote_err_month_dict"].pop(self.EOM_by_ws.strftime("%Y%m"))
 
         except Exception as e:
-            self.logger.error(f'{e}', exc_info=True)
+            self.logger.error(f"{e}", exc_info=True)
 
     def _make_stamped_time(self, stamped_day, cell_value):
         if type(cell_value) != time:
@@ -510,9 +529,9 @@ class TimeCardImportView(ExcelHandleView):
         self._edit_appearance_ws(ws)
         self._adjust_col_width_ws(ws)
 
-        filename = 'エラーレポート_' + timezone.datetime.now().strftime('%Y%m%d%H%M') + '.xlsx'
-        response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-        response['Content-Disposition'] = 'attachment; filename={}'.format(urllib.parse.quote(filename))
+        filename = "エラーレポート_" + timezone.datetime.now().strftime("%Y%m%d%H%M") + ".xlsx"
+        response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
+        response["Content-Disposition"] = "attachment; filename={}".format(urllib.parse.quote(filename))
         wb.save(response)
 
         return response
@@ -520,20 +539,22 @@ class TimeCardImportView(ExcelHandleView):
     def _exist_promoted_stamps(self):
         monthly_stamps_qs = self._get_queryset()
         if monthly_stamps_qs.exclude(state=TimeCard.State.NEW).exists():
-            self.request.session['error'] = \
-                '{}および{}の情報は更新できません'.format(TimeCard.State.PROCESSING.label, TimeCard.State.APPROVED.label)
+            self.request.session["error"] = "{}および{}の情報は更新できません".format(
+                TimeCard.State.PROCESSING.label, TimeCard.State.APPROVED.label
+            )
 
         return monthly_stamps_qs.exclude(state=TimeCard.State.NEW).exists()
 
     def _get_queryset(self):
         monthly_stamps_qs = TimeCard.objects.filter(
             stamped_time__gte=(self.EOM_by_ws + relativedelta(day=1)),
-            stamped_time__lt=(self.EOM_by_ws + relativedelta(months=1, day=1)), user=self.request.user)
+            stamped_time__lt=(self.EOM_by_ws + relativedelta(months=1, day=1)),
+            user=self.request.user,
+        )
 
         return monthly_stamps_qs
 
     def _exist_format_err(self, *cells):
-
         format_err = False
         for cell in cells:
             if self._cell_value2time(cell.value) is False:
@@ -544,7 +565,7 @@ class TimeCardImportView(ExcelHandleView):
 
     def _set_err_color(self):
         for err_cell in self.err_cell_list:
-            err_cell.fill = PatternFill(patternType='solid', fgColor=self.YELLOW)
+            err_cell.fill = PatternFill(patternType="solid", fgColor=self.YELLOW)
 
     def _set_err_msg(self, ws):
         for row_num, err_msg in self.row_err_msg_dict.items():
@@ -595,13 +616,17 @@ class TimeCardImportView(ExcelHandleView):
 
 class TimeCardProcessMonthListView(SuperuserPermissionView, ListView):
     model = TimeCard
-    template_name = 'material-dashboard-master/pages/tables_process.html'
+    template_name = "material-dashboard-master/pages/tables_process.html"
 
     def get_queryset(self):
-        state_process_month_qs = \
-            TimeCard.objects.filter(~Q(user=self.request.user), state=TimeCard.State.PROCESSING).values(
-                'user', 'stamped_time').annotate(month=TruncMonth('stamped_time')).values(
-                'user', 'month').order_by('user', '-month').distinct()
+        state_process_month_qs = (
+            TimeCard.objects.filter(~Q(user=self.request.user), state=TimeCard.State.PROCESSING)
+            .values("user", "stamped_time")
+            .annotate(month=TruncMonth("stamped_time"))
+            .values("user", "month")
+            .order_by("user", "-month")
+            .distinct()
+        )
 
         return state_process_month_qs
 
@@ -609,38 +634,38 @@ class TimeCardProcessMonthListView(SuperuserPermissionView, ListView):
         context = super().get_context_data()
         context.update(**get_toast_msg_by_session(self.request.session))
 
-        for process_month in context['process_month_list']:
-            user = User.objects.get(pk=process_month['user'])
-            process_month['user_name'] = user.name
-            process_month['date_str'] = process_month['month'].strftime('%Y{0}%m{1}').format(*'年月')
-            process_month['param'] = '?month={}&user={}'.format(process_month['month'].strftime('%Y%m'), user.id)
+        for process_month in context["process_month_list"]:
+            user = User.objects.get(pk=process_month["user"])
+            process_month["user_name"] = user.name
+            process_month["date_str"] = process_month["month"].strftime("%Y{0}%m{1}").format(*"年月")
+            process_month["param"] = "?month={}&user={}".format(process_month["month"].strftime("%Y%m"), user.id)
 
         return context
 
     def get_context_object_name(self, object_list):
-        return 'process_month_list'
+        return "process_month_list"
 
 
 class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMonthlyReportView):
-    template_name = 'material-dashboard-master/pages/processing_list.html'
-    url = reverse_lazy('timecard:timecard_process_month_list')
+    template_name = "material-dashboard-master/pages/processing_list.html"
+    url = reverse_lazy("timecard:timecard_process_month_list")
 
     def get(self, request, *args, **kwargs):
         self.user = self._get_user_by_url(request)
 
         self.EOM_by_url = self.get_EOM_by_url()
         if self.user is None or self.EOM_by_url is None:
-            request.session['error'] = '不正な操作を検知しました'
+            request.session["error"] = "不正な操作を検知しました"
             return redirect(self.url)
 
         if not self.get_queryset().exists():
-            request.session['error'] = '申請中の勤怠が存在しません'
+            request.session["error"] = "申請中の勤怠が存在しません"
             return redirect(self.url)
 
         return super().get(request, *args, **kwargs)
 
     def _get_user_by_url(self, request):
-        param = request.GET.get('user')
+        param = request.GET.get("user")
         if param:
             try:
                 return User.objects.get(pk=param)
@@ -654,8 +679,8 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
 
     def get_context_data(self):
         context = super().get_context_data()
-        context['user_name'] = self.user.name
-        context['total_work_hours'] = timedelta2str(self.total_work_hours)
+        context["user_name"] = self.user.name
+        context["total_work_hours"] = timedelta2str(self.total_work_hours)
 
         return context
 
@@ -669,9 +694,12 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
                 self._calculation_total_work_hours_total_break_hours(monthly_stamps_qs)
 
                 return TimeCardSummary.objects.create(
-                    user=self.user, work_days_flag=work_days_flag, month=self.EOM_by_url.strftime('%Y%m'),
+                    user=self.user,
+                    work_days_flag=work_days_flag,
+                    month=self.EOM_by_url.strftime("%Y%m"),
                     total_work_hours=timedelta2str(self.total_work_hours),
-                    total_break_hours=timedelta2str(self.total_break_hours))
+                    total_break_hours=timedelta2str(self.total_break_hours),
+                )
         except:
             return
 
@@ -687,23 +715,25 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
         monthly_stamps_qs = self.get_queryset()
 
         if monthly_stamps_qs.filter(state=TimeCard.State.APPROVED).exists():
-            self.request.session['error'] = 'すでに承認済みです'
+            self.request.session["error"] = "すでに承認済みです"
             return redirect(self.url)
 
         if self.approval_process(monthly_stamps_qs):
-            self.request.session['success'] = 'ステータスを{}に更新しました'.format(TimeCard.State.APPROVED.label)
+            self.request.session["success"] = "ステータスを{}に更新しました".format(TimeCard.State.APPROVED.label)
             return redirect(self.url)
 
-        self.request.session['error'] = '承認処理に失敗しました'
+        self.request.session["error"] = "承認処理に失敗しました"
         return redirect(self.url)
 
     def _calculation_total_work_hours_total_break_hours(self, monthly_stamps_qs):
         self._get_monthly_report(monthly_stamps_qs)
 
     def get_queryset(self):
-        monthly_stamps_qs = \
-            TimeCard.objects.filter(stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
-                                    stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
-                                    user=self.user, state=TimeCard.State.PROCESSING).order_by('stamped_time')
+        monthly_stamps_qs = TimeCard.objects.filter(
+            stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
+            stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
+            user=self.user,
+            state=TimeCard.State.PROCESSING,
+        ).order_by("stamped_time")
 
         return monthly_stamps_qs
