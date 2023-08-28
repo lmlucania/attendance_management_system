@@ -17,6 +17,7 @@ services:
       retries: 5
     env_file:
       - .env.prod
+    restart: always
   app:
     container_name: app
     build:
@@ -29,6 +30,7 @@ services:
     command: sh -c "chmod 755 /code/entrypoint.sh && /code/entrypoint.sh"
     env_file:
       - .env.prod
+    restart: always
     depends_on:
       db:
         condition: service_healthy
@@ -41,6 +43,7 @@ services:
       - ./static:/static
     ports:
       - "80:80"
+    restart: always
     depends_on:
       - app
 volumes:
