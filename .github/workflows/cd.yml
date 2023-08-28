@@ -4,17 +4,37 @@ on:
   workflow_run:
     workflows:
       - Lint and Test
+    branches:
+      - develop
     types:
       - completed
 
 jobs:
-  on-success:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'success' }}
-    steps:
-      - run: echo 'success'
-  on-failure:
-    runs-on: ubuntu-latest
-    if: ${{ github.event.workflow_run.conclusion == 'failure' }}
-    steps:
-      - run: echo 'failure'
+ build:
+   if: ${{ github.event.workflow_run.conclusion == 'success' }}
+   runs-on: ubuntu-latest
+   timeout-minutes: 10
+   steps:
+     - name: AWS CLI install
+       run: |
+         curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+         unzip awscliv2.zip
+         sudo ./aws/install --update
+         aws --version
+
+     - name: AWS set Credentials
+       uses: aws-actions/configure-aws-credentials@v1
+       with:
+         aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+         aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+         aws-region: ap-northeast-1
+
+     - name: Deploy
+       run: |
+         echo "${{secrets.PRIVATE_KEY}}" > private_key && chmod 600 private_key
+         ssh -o StrictHostKeyChecking=no -p ${{secrets.SSH_PORT}} -i private_key ${{secrets.USER_NAME}}@${{secrets.HOSTNAME}} '
+         cd attendance_management_system &&
+         git pull origin develop &&
+         docker container exec app python manage.py migrate &&
+         docker container exec app python manage.py collectstatic --noinput &&
+         docker-compose -f docker-compose.prod.yml build web app'
