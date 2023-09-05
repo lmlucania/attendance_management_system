@@ -5,7 +5,6 @@ from diagrams.aws.security import CertificateAuthority
 from diagrams.onprem.client import Client
 from diagrams.onprem.network import Internet
 
-
 with Diagram("infra_structure", show=False):
     internet = Internet("Internet")
     client = Client("Client")
