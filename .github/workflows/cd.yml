@@ -31,7 +31,7 @@ jobs:
 
      - name: Deploy
        run: |
-         echo "${{secrets.PRIVATE_KEY}}" > private_key && chmod 600 private_key
+         echo "${{secrets.PRIVATE_KEY}}" >> private_key && chmod 600 private_key
          ssh -o StrictHostKeyChecking=no -p ${{secrets.SSH_PORT}} -i private_key ${{secrets.USER_NAME}}@${{secrets.HOSTNAME}} '
          cd attendance_management_system &&
          git pull origin develop &&
