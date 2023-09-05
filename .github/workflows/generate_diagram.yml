@@ -13,8 +13,8 @@ on:
        - 'web_service.py'
 
 jobs:
-  make_diagram:
-    name: make-diagram
+  generate_diagram:
+    name: generate-diagram
     runs-on: ubuntu-latest
     container:
       image: python:3.9
