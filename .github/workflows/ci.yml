@@ -3,8 +3,6 @@ name: Lint and Test
 on:
   workflow_dispatch:
   push:
-    paths:
-      - '**.py'
 
 jobs:
   lint-and-test:

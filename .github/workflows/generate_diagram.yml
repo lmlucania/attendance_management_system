@@ -1,0 +1,47 @@
+name: Generate diagram
+
+on:
+  workflow_run:
+    workflows:
+      - Lint and Test
+    branches:
+      - develop
+    types:
+      - completed
+    paths:
+       - 'infra_structure.py'
+       - 'web_service.py'
+
+jobs:
+  make_diagram:
+    name: make-diagram
+    runs-on: ubuntu-latest
+    container:
+      image: python:3.9
+    steps:
+      - name: Install git
+        run: |
+          apt-get update
+          apt-get install git -y
+      - name: Graphviz install
+        run: |
+          apt install -y graphviz
+          dot -V
+      - name: Checkout
+        uses: actions/checkout@v3
+        with:
+          ref: ${{ github.head_ref }}
+      - name: Add safe directory
+        run: git config --global --add safe.directory $PWD
+      - name: Install Dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install diagrams
+      - name: Generate diagram
+        run: |
+          python infra_structure.py
+          python web_service.py
+      - name: Auto Commit & Push
+        uses: stefanzweifel/git-auto-commit-action@v4
+        with:
+          commit_message: Apply Architecture Diagram Change
