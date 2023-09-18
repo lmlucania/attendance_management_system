@@ -1,10 +1,9 @@
 from .dashboard import DashboardView
-from .timecard import (TimeCardEditView, TimeCardExportView,
-                       TimeCardImportView, TimeCardMonthlyReportView,
-                       TimeCardProcessMonthListView,
-                       TimeCardProcessMonthlyReportView,
-                       TimeCardApprovedMonthListView,
-                       TimeCardApprovedMonthlyReportView)
+from .timecard import (TimeCardApprovedMonthListView,
+                       TimeCardApprovedMonthlyReportView, TimeCardEditView,
+                       TimeCardExportView, TimeCardImportView,
+                       TimeCardMonthlyReportView, TimeCardProcessMonthListView,
+                       TimeCardProcessMonthlyReportView)
 
 __all__ = [
     "DashboardView",
@@ -15,5 +14,5 @@ __all__ = [
     "TimeCardProcessMonthlyReportView",
     "TimeCardEditView",
     "TimeCardApprovedMonthListView",
-    "TimeCardApprovedMonthlyReportView"
+    "TimeCardApprovedMonthlyReportView",
 ]

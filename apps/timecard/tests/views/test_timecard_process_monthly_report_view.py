@@ -138,7 +138,9 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
         エラーメッセージを確認
         :return:
         """
-        response = self.client.get(self.url, {"user": self.super_user, "month": "202301", "mode": "promote"}, follow=True)
+        response = self.client.get(
+            self.url, {"user": self.super_user, "month": "202301", "mode": "promote"}, follow=True
+        )
         self.assertEqual("不正な操作を検知しました", response.context_data["error"])
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.redirect_template, response.templates[0].name)

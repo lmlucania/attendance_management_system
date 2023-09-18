@@ -41,11 +41,11 @@ class TimeCardSummary(models.Model):
     month = models.CharField(verbose_name="対象月", max_length=6)
     created_at = models.DateTimeField(verbose_name="登録日時", auto_now_add=True)
     updated_at = models.DateTimeField(verbose_name="更新日時", auto_now=True)
-    
+
     @property
     def work_days_count(self):
         count = 0
-        work_days_bin = format(self.work_days_flag, 'b')
+        work_days_bin = format(self.work_days_flag, "b")
         for bit_index in range(len(work_days_bin)):
             if self.work_days_flag & (1 << bit_index):
                 count += 1

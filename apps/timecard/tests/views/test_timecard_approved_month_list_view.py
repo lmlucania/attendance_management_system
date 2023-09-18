@@ -1,14 +1,13 @@
 from http import HTTPStatus
 
+from dateutil.relativedelta import relativedelta
 from django.urls import reverse
+from django.utils import timezone
 
 from apps.accounts.models import User
 from apps.timecard.models import TimeCardSummary
 
 from ..base import BaseTestCaseNeedSuperUser
-from django.utils import timezone
-from dateutil.relativedelta import relativedelta
-
 
 
 class TestTimeCardApprovedMonthListView(BaseTestCaseNeedSuperUser):
@@ -46,7 +45,9 @@ class TestTimeCardApprovedMonthListView(BaseTestCaseNeedSuperUser):
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.template, response.templates[0].name)
 
-        self.assertEqual((today - relativedelta(months=1)).strftime("%Y-%m"), response.context_data["search_form"].initial["month"])
+        self.assertEqual(
+            (today - relativedelta(months=1)).strftime("%Y-%m"), response.context_data["search_form"].initial["month"]
+        )
 
     def test_get_no_record(self):
         """
@@ -64,8 +65,12 @@ class TestTimeCardApprovedMonthListView(BaseTestCaseNeedSuperUser):
         :return:
         """
         for user in User.objects.all():
-            TimeCardSummary.objects.create(total_work_hours='1', total_break_hours='2', work_days_flag=3, month='202301', user=user)
-            TimeCardSummary.objects.create(total_work_hours='1', total_break_hours='2', work_days_flag=3, month='202302', user=user)
+            TimeCardSummary.objects.create(
+                total_work_hours="1", total_break_hours="2", work_days_flag=3, month="202301", user=user
+            )
+            TimeCardSummary.objects.create(
+                total_work_hours="1", total_break_hours="2", work_days_flag=3, month="202302", user=user
+            )
 
         response = self.client.get(self.url, {"month": "202301"})
         self.assertEqual(HTTPStatus.OK.value, response.status_code)

@@ -1,10 +1,11 @@
 from django.urls import path
 
-from apps.timecard.views import (DashboardView, TimeCardEditView,
-                                 TimeCardExportView, TimeCardImportView,
-                                 TimeCardMonthlyReportView,
+from apps.timecard.views import (DashboardView, TimeCardApprovedMonthListView,
+                                 TimeCardApprovedMonthlyReportView,
+                                 TimeCardEditView, TimeCardExportView,
+                                 TimeCardImportView, TimeCardMonthlyReportView,
                                  TimeCardProcessMonthListView,
-                                 TimeCardProcessMonthlyReportView,TimeCardApprovedMonthListView, TimeCardApprovedMonthlyReportView)
+                                 TimeCardProcessMonthlyReportView)
 
 app_name = "apps.timecard"
 
@@ -17,6 +18,7 @@ urlpatterns = [
     path("process_month_list", TimeCardProcessMonthListView.as_view(), name="timecard_process_month_list"),
     path("process_monthly_report", TimeCardProcessMonthlyReportView.as_view(), name="timecard_process_monthly_report"),
     path("approved_month_list", TimeCardApprovedMonthListView.as_view(), name="timecard_approved_month_list"),
-    path("approved_monthly_report", TimeCardApprovedMonthlyReportView.as_view(), name="timecard_approved_monthly_report"),
-
+    path(
+        "approved_monthly_report", TimeCardApprovedMonthlyReportView.as_view(), name="timecard_approved_monthly_report"
+    ),
 ]

@@ -21,8 +21,8 @@ class LoginView(views.LoginView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data()
-        #TODO デモ用 ログイン情報
-        context['users'] = User.objects.all().order_by('-manager', 'email')
+        # TODO デモ用 ログイン情報
+        context["users"] = User.objects.all().order_by("-manager", "email")
         return context
 
 

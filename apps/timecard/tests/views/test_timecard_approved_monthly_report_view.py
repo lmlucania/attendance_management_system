@@ -14,8 +14,6 @@ class TestTimeCardApprovedMonthlyReportView(BaseTestCaseNeedSuperUser):
     template = "material-dashboard-master/pages/approved_list.html"
     redirect_template = "material-dashboard-master/pages/tables_approved.html"
 
-
-
     def test_get_not_login(self):
         """
         ログイン前に画面にアクセスする
@@ -81,7 +79,9 @@ class TestTimeCardApprovedMonthlyReportView(BaseTestCaseNeedSuperUser):
         :return:
         """
         TimeCard.objects.all().update(state=TimeCard.State.APPROVED)
-        TimeCardSummary.objects.create(total_work_hours='1', total_break_hours='2', work_days_flag=3, month='202301', user=self.user)
+        TimeCardSummary.objects.create(
+            total_work_hours="1", total_break_hours="2", work_days_flag=3, month="202301", user=self.user
+        )
 
         response = self.client.get(self.url, {"user": self.user.id, "month": "202301"}, follow=True)
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
@@ -112,4 +112,3 @@ class TestTimeCardApprovedMonthlyReportView(BaseTestCaseNeedSuperUser):
         self.assertEqual("", monthly_report[2]["end_break"])
         self.assertEqual("0:00", monthly_report[2]["work_hours"])
         self.assertEqual("0:00", monthly_report[2]["break_hours"])
-

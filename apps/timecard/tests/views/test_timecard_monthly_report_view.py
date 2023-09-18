@@ -175,4 +175,3 @@ class TestTimeCardMonthlyReportView(BaseTestCase):
 
         response = self.client.get(self.url + "?month=202301")
         self.assertEqual(expected_err_msg, response.context_data["promote_err_msg"][0])
-

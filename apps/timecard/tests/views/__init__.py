@@ -1,3 +1,7 @@
+from .test_timecard_approved_month_list_view import \
+    TestTimeCardApprovedMonthListView
+from .test_timecard_approved_monthly_report_view import \
+    TestTimeCardApprovedMonthlyReportView
 from .test_timecard_edit_view import TestTimeCardEditView
 from .test_timecard_export_view import TestTimeCardExportView
 from .test_timecard_import_view import TestTimeCardImportView
@@ -6,8 +10,6 @@ from .test_timecard_process_month_list_view import \
     TestTimeCardProcessMonthListView
 from .test_timecard_process_monthly_report_view import \
     TestTimeCardProcessMonthlyReportView
-from .test_timecard_approved_month_list_view import TestTimeCardApprovedMonthListView
-from .test_timecard_approved_monthly_report_view import TestTimeCardApprovedMonthlyReportView
 
 __all__ = [
     "TestTimeCardEditView",
@@ -16,6 +18,6 @@ __all__ = [
     "TestTimeCardMonthlyReportView",
     "TestTimeCardProcessMonthListView",
     "TestTimeCardProcessMonthlyReportView",
-    'TestTimeCardApprovedMonthListView',
-    'TestTimeCardApprovedMonthlyReportView'
+    "TestTimeCardApprovedMonthListView",
+    "TestTimeCardApprovedMonthlyReportView",
 ]

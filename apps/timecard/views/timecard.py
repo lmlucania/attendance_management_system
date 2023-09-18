@@ -122,7 +122,13 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
             return redirect(reverse("timecard:timecard_monthly_report"))
 
         wb = self._create_wb()
-        filename = "勤怠_" + request.user.name.replace(' ', '_') + '_' + self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月") + ".xlsx"
+        filename = (
+            "勤怠_"
+            + request.user.name.replace(" ", "_")
+            + "_"
+            + self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月")
+            + ".xlsx"
+        )
         response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response["Content-Disposition"] = "attachment; filename={}".format(urllib.parse.quote(filename))
         wb.save(response)
@@ -643,17 +649,22 @@ class TimeCardProcessMonthListView(SuperuserPermissionView, ListView):
         return context
 
 
-
 class TimeCardApprovedMonthListView(SuperuserPermissionView, ListView):
     template_name = "material-dashboard-master/pages/tables_approved.html"
 
     def get(self, request, *args, **kwargs):
-        display_month = self._get_month_str_by_url() or self.request.session.get('approved_month') or (timezone.datetime.today() - relativedelta(months=1)).strftime("%Y%m")
-        self.request.session['approved_month'] = display_month
+        display_month = (
+            self._get_month_str_by_url()
+            or self.request.session.get("approved_month")
+            or (timezone.datetime.today() - relativedelta(months=1)).strftime("%Y%m")
+        )
+        self.request.session["approved_month"] = display_month
         return super().get(request, *args, **kwargs)
 
     def get_queryset(self):
-        summary_qs = TimeCardSummary.objects.filter(~Q(user=self.request.user), month=self.request.session['approved_month'])
+        summary_qs = TimeCardSummary.objects.filter(
+            ~Q(user=self.request.user), month=self.request.session["approved_month"]
+        )
 
         return summary_qs
 
@@ -666,7 +677,9 @@ class TimeCardApprovedMonthListView(SuperuserPermissionView, ListView):
 
     def _get_search_form(self):
         kwargs = {}
-        kwargs["initial"] = {"month": self.request.session['approved_month'][:4] + '-' + self.request.session['approved_month'][4:]}
+        kwargs["initial"] = {
+            "month": self.request.session["approved_month"][:4] + "-" + self.request.session["approved_month"][4:]
+        }
         return TimeCardSearchForm(**kwargs)
 
     def _get_month_str_by_url(self):
@@ -727,7 +740,7 @@ class TimeCardApprovedMonthlyReportView(SuperuserPermissionView, TimeCardBaseMon
             stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
             stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
             user=self.user,
-            state=self.DISPLAY_STATE
+            state=self.DISPLAY_STATE,
         ).order_by("stamped_time")
 
         return monthly_stamps_qs
@@ -735,6 +748,7 @@ class TimeCardApprovedMonthlyReportView(SuperuserPermissionView, TimeCardBaseMon
     def _get_total_work_hours(self):
         summary = TimeCardSummary.objects.get(user=self.user, month=self.EOM_by_url.strftime("%Y%m"))
         return summary.total_work_hours
+
 
 class TimeCardProcessMonthlyReportView(TimeCardApprovedMonthlyReportView):
     template_name = "material-dashboard-master/pages/processing_list.html"
@@ -804,7 +818,6 @@ class TimeCardProcessMonthlyReportView(TimeCardApprovedMonthlyReportView):
             stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
             stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
             user=self.user,
-
         ).order_by("stamped_time")
 
         return monthly_stamps_qs
@@ -820,5 +833,5 @@ class TimeCardProcessMonthlyReportView(TimeCardApprovedMonthlyReportView):
 
     def get_context_data(self):
         context = super().get_context_data()
-        context['work_days_count'] = len(self._get_work_days_by_qs(self.get_queryset()))
+        context["work_days_count"] = len(self._get_work_days_by_qs(self.get_queryset()))
         return context
