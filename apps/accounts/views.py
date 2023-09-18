@@ -3,6 +3,7 @@ from django.http import HttpResponseRedirect
 from django.urls import reverse_lazy
 
 from apps.accounts.form import LoginForm, PasswordResetForm, SetPasswordForm
+from apps.accounts.models import User
 
 
 class LoginView(views.LoginView):
@@ -17,6 +18,12 @@ class LoginView(views.LoginView):
             url = reverse_lazy("timecard:dashboard")
 
         return url
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data()
+        #TODO デモ用 ログイン情報
+        context['users'] = User.objects.all().order_by('-manager', 'email')
+        return context
 
 
 class LogoutView(views.LogoutView):

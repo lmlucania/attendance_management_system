@@ -80,14 +80,17 @@
                   </div>
                     {% csrf_token %}
                 </form>
+                <h6>ログイン情報（メールアドレス / パスワード）<br>２時間ごとにデモ用データはリセットされます。</h6>
+                <p>
                 {% for user in users %}
                     {% if user.manager %}
                          管理者：
                     {% else %}
                         一般：
                     {% endif %}
-                    {{ user.email }}/pass<br>
+                    {{ user.email }} / pass<br>
                 {% endfor %}
+                </p>
               </div>
             </div>
           </div>
