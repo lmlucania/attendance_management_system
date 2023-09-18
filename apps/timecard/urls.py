@@ -4,7 +4,7 @@ from apps.timecard.views import (DashboardView, TimeCardEditView,
                                  TimeCardExportView, TimeCardImportView,
                                  TimeCardMonthlyReportView,
                                  TimeCardProcessMonthListView,
-                                 TimeCardProcessMonthlyReportView)
+                                 TimeCardProcessMonthlyReportView,TimeCardApprovedMonthListView, TimeCardApprovedMonthlyReportView)
 
 app_name = "apps.timecard"
 
@@ -16,4 +16,7 @@ urlpatterns = [
     path("upload", TimeCardImportView.as_view(), name="timecard_upload"),
     path("process_month_list", TimeCardProcessMonthListView.as_view(), name="timecard_process_month_list"),
     path("process_monthly_report", TimeCardProcessMonthlyReportView.as_view(), name="timecard_process_monthly_report"),
+    path("approved_month_list", TimeCardApprovedMonthListView.as_view(), name="timecard_approved_month_list"),
+    path("approved_monthly_report", TimeCardApprovedMonthlyReportView.as_view(), name="timecard_approved_monthly_report"),
+
 ]

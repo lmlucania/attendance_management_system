@@ -40,12 +40,12 @@ class TimeCardBaseMonthlyReportView(TemplateView):
     template_name = None
 
     def get(self, request, *args, **kwargs):
-        self.EOM_by_url = self.get_EOM_by_url()
+        self.EOM_by_url = self._get_EOM_by_url()
         if request.GET.get("mode") == "promote":
             return self._promote_process()
         return super().get(request, *args, **kwargs)
 
-    def get_EOM_by_url(self, allow_none_param=True):
+    def _get_EOM_by_url(self, allow_none_param=True):
         today = timezone.datetime.today().replace(hour=0, minute=0, second=0, microsecond=0)
         date_by_url = None
 

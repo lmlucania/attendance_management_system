@@ -31,10 +31,10 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
     template_name = "material-dashboard-master/pages/new_list.html"
     session_month_format = "%Y-%m-%d %H:%M:%S%z"
 
-    def get_EOM_by_url(self):
+    def _get_EOM_by_url(self):
         if not self.request.GET.get("month") and self.request.session.get("month"):
             return datetime.strptime(self.request.session["month"], self.session_month_format)
-        return super().get_EOM_by_url()
+        return super()._get_EOM_by_url()
 
     def get_context_data(self):
         context = super().get_context_data()
@@ -116,7 +116,7 @@ class TimeCardMonthlyReportView(TimeCardBaseMonthlyReportView):
 
 class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
     def get(self, request, *args, **kwargs):
-        self.EOM_by_url = super().get_EOM_by_url(False)
+        self.EOM_by_url = super()._get_EOM_by_url(False)
 
         if self.EOM_by_url is None:
             return redirect(reverse("timecard:timecard_monthly_report"))
@@ -192,7 +192,7 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
 
 
 class TimeCardEditView(TemplateView):
-    template_name = "timecard/form.html"
+    template_name = "material-dashboard-master/pages/form.html"
 
     def dispatch(self, request, *args, **kwargs):
         self.date_by_url = self._get_date_by_url()
@@ -302,7 +302,7 @@ class TimeCardEditView(TemplateView):
 
 
 class TimeCardImportView(ExcelHandleView):
-    template_name = "timecard/upload.html"
+    template_name = "material-dashboard-master/pages/upload.html"
     logger = logging.getLogger(__name__)
 
     ERR_MSG_HEADER = "エラー内容"
@@ -599,23 +599,23 @@ class TimeCardImportView(ExcelHandleView):
         if (enter_break is None) ^ (end_break is None):
             self.err_cell_list.extend([enter_break_cell, end_break_cell])
             self.row_err_msg_dict[row_num] = TimeCardFormSet.ERR_MSG_NEED_BREAK_TIME
-            return
+            return True
 
         elif end_break < enter_break:
             self.err_cell_list.extend([enter_break_cell, end_break_cell])
             self.row_err_msg_dict[row_num] = TimeCardFormSet.ERR_MSG_BREAK_TIME
-            return
+            return True
 
         elif enter_break < start_work or end_work < end_break:
             self.err_cell_list.extend([enter_break_cell, end_break_cell])
             self.row_err_msg_dict[row_num] = TimeCardFormSet.ERR_MSG_BREAK_TIME_OUT_OF_RANGE
-            return
+            return True
 
-        return True
+        return False
 
 
 class TimeCardProcessMonthListView(SuperuserPermissionView, ListView):
-    model = TimeCard
+    context_object_name = "month_list"
     template_name = "material-dashboard-master/pages/tables_process.html"
 
     def get_queryset(self):
@@ -634,32 +634,67 @@ class TimeCardProcessMonthListView(SuperuserPermissionView, ListView):
         context = super().get_context_data()
         context.update(**get_toast_msg_by_session(self.request.session))
 
-        for process_month in context["process_month_list"]:
-            user = User.objects.get(pk=process_month["user"])
-            process_month["user_name"] = user.name
-            process_month["date_str"] = process_month["month"].strftime("%Y{0}%m{1}").format(*"年月")
-            process_month["param"] = "?month={}&user={}".format(process_month["month"].strftime("%Y%m"), user.id)
+        for month in context["month_list"]:
+            user = User.objects.get(pk=month["user"])
+            month["user_name"] = user.name
+            month["date_str"] = month["month"].strftime("%Y{0}%m{1}").format(*"年月")
+            month["param"] = "?month={}&user={}".format(month["month"].strftime("%Y%m"), user.id)
 
         return context
 
-    def get_context_object_name(self, object_list):
-        return "process_month_list"
 
 
-class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMonthlyReportView):
-    template_name = "material-dashboard-master/pages/processing_list.html"
-    url = reverse_lazy("timecard:timecard_process_month_list")
+class TimeCardApprovedMonthListView(SuperuserPermissionView, ListView):
+    template_name = "material-dashboard-master/pages/tables_approved.html"
+
+    def get(self, request, *args, **kwargs):
+        display_month = self._get_month_str_by_url() or self.request.session.get('approved_month') or (timezone.datetime.today() - relativedelta(months=1)).strftime("%Y%m")
+        self.request.session['approved_month'] = display_month
+        return super().get(request, *args, **kwargs)
+
+    def get_queryset(self):
+        summary_qs = TimeCardSummary.objects.filter(~Q(user=self.request.user), month=self.request.session['approved_month'])
+
+        return summary_qs
+
+    def get_context_data(self, *, object_list=None, **kwargs):
+        context = super().get_context_data()
+        context.update(**get_toast_msg_by_session(self.request.session))
+        context["search_form"] = self._get_search_form()
+
+        return context
+
+    def _get_search_form(self):
+        kwargs = {}
+        kwargs["initial"] = {"month": self.request.session['approved_month'][:4] + '-' + self.request.session['approved_month'][4:]}
+        return TimeCardSearchForm(**kwargs)
+
+    def _get_month_str_by_url(self):
+        param = self.request.GET.get("month")
+        if not param:
+            return
+        try:
+            timezone.datetime.strptime(param + "01", "%Y%m%d")
+            return param
+        except:
+            return
+
+
+class TimeCardApprovedMonthlyReportView(SuperuserPermissionView, TimeCardBaseMonthlyReportView):
+    template_name = "material-dashboard-master/pages/approved_list.html"
+    url = reverse_lazy("timecard:timecard_approved_month_list")
+    DISPLAY_STATE = TimeCard.State.APPROVED
 
     def get(self, request, *args, **kwargs):
         self.user = self._get_user_by_url(request)
 
-        self.EOM_by_url = self.get_EOM_by_url()
+        self.EOM_by_url = self._get_EOM_by_url()
         if self.user is None or self.EOM_by_url is None:
             request.session["error"] = "不正な操作を検知しました"
             return redirect(self.url)
 
         if not self.get_queryset().exists():
-            request.session["error"] = "申請中の勤怠が存在しません"
+            request.session["error"] = "勤怠情報が存在しません"
             return redirect(self.url)
 
         return super().get(request, *args, **kwargs)
@@ -668,21 +703,57 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
         param = request.GET.get("user")
         if param:
             try:
+                if param == request.user.id:
+                    return
+
                 return User.objects.get(pk=param)
             except:
                 pass
 
         return
 
-    def get_EOM_by_url(self):
-        return super().get_EOM_by_url(False)
+    def _get_EOM_by_url(self):
+        return super()._get_EOM_by_url(False)
 
     def get_context_data(self):
         context = super().get_context_data()
         context["user_name"] = self.user.name
-        context["total_work_hours"] = timedelta2str(self.total_work_hours)
+        context["total_work_hours"] = self._get_total_work_hours()
 
         return context
+
+    def get_queryset(self):
+        monthly_stamps_qs = TimeCard.objects.filter(
+            stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
+            stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
+            user=self.user,
+            state=self.DISPLAY_STATE
+        ).order_by("stamped_time")
+
+        return monthly_stamps_qs
+
+    def _get_total_work_hours(self):
+        summary = TimeCardSummary.objects.get(user=self.user, month=self.EOM_by_url.strftime("%Y%m"))
+        return summary.total_work_hours
+
+class TimeCardProcessMonthlyReportView(TimeCardApprovedMonthlyReportView):
+    template_name = "material-dashboard-master/pages/processing_list.html"
+    url = reverse_lazy("timecard:timecard_process_month_list")
+    DISPLAY_STATE = TimeCard.State.PROCESSING
+
+    def get(self, request, *args, **kwargs):
+        response = super().get(request, *args, **kwargs)
+
+        if request.session.get("error"):
+            return redirect(self.url)
+
+        if request.GET.get("mode") == "demote":
+            return self._demote_process()
+
+        return response
+
+    def _get_total_work_hours(self):
+        return timedelta2str(self.total_work_hours)
 
     @transaction.atomic
     def approval_process(self, monthly_stamps_qs):
@@ -690,7 +761,7 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
             with transaction.atomic():
                 monthly_stamps_qs.update(state=TimeCard.State.APPROVED)
                 work_days_list = self._get_work_days_by_qs(monthly_stamps_qs)
-                work_days_flag = self._create_work_days_flag(work_days_list)
+                work_days_flag = self.create_work_days_flag(work_days_list)
                 self._calculation_total_work_hours_total_break_hours(monthly_stamps_qs)
 
                 return TimeCardSummary.objects.create(
@@ -703,7 +774,7 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
         except:
             return
 
-    def _create_work_days_flag(self, work_days_list) -> int:
+    def create_work_days_flag(self, work_days_list) -> int:
         work_days_flag_int = 0
         for work_day in work_days_list:
             left_shift_count = work_day - 1
@@ -714,12 +785,12 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
     def _promote_process(self):
         monthly_stamps_qs = self.get_queryset()
 
-        if monthly_stamps_qs.filter(state=TimeCard.State.APPROVED).exists():
-            self.request.session["error"] = "すでに承認済みです"
+        if not monthly_stamps_qs.exists():
+            self.request.session["error"] = "申請中の勤怠情報が存在しません"
             return redirect(self.url)
 
         if self.approval_process(monthly_stamps_qs):
-            self.request.session["success"] = "ステータスを{}に更新しました".format(TimeCard.State.APPROVED.label)
+            self.request.session["success"] = "承認しました"
             return redirect(self.url)
 
         self.request.session["error"] = "承認処理に失敗しました"
@@ -733,7 +804,21 @@ class TimeCardProcessMonthlyReportView(SuperuserPermissionView, TimeCardBaseMont
             stamped_time__gte=(self.EOM_by_url + relativedelta(day=1)),
             stamped_time__lt=(self.EOM_by_url + relativedelta(months=1, day=1)),
             user=self.user,
-            state=TimeCard.State.PROCESSING,
+
         ).order_by("stamped_time")
 
         return monthly_stamps_qs
+
+    def _demote_process(self):
+        try:
+            self.get_queryset().update(state=TimeCard.State.NEW)
+            self.request.session["success"] = "差し戻しました"
+        except:
+            self.request.session["error"] = "差戻処理に失敗しました"
+
+        return redirect(self.url)
+
+    def get_context_data(self):
+        context = super().get_context_data()
+        context['work_days_count'] = len(self._get_work_days_by_qs(self.get_queryset()))
+        return context
