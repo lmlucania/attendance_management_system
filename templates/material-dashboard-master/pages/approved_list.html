@@ -1,0 +1,72 @@
+{% extends "material-dashboard-master/pages/base_list.html" %}
+
+{% block title %}
+    承認済み内容確認
+{% endblock %}
+
+{% block page_title %}
+    {{ BOM }}〜{{ EOM }}
+{% endblock %}
+
+{% block card_header %}
+    <div class="card-header pb-0">
+        <div class="row">
+        <div class="col-4 col-md-4 col-lg-3">
+            <h6>
+            申請者：　{{ user_name }}
+            </h6>
+            <p class="text-sm mb-0">
+                <span class="font-weight-bold ms-1">総勤務時間：{{ total_work_hours }} 時間</span>
+            </p>
+        </div>
+        </div>
+    </div>
+{% endblock %}
+
+{% block table_right %}
+    {% if state == '0' %}
+      <a href="{% url 'timecard:timecard_edit' %}?date={{ BOM|date:"Ym" }}{{ day_report.day }}";  class="text-secondary font-weight-bold text-xs EditModal" data-toggle="tooltip" id="edit" value={{ day_report.day }}>
+          <i class="material-icons text-sm me-2">edit</i>
+          編集
+      </a>
+    {% endif %}
+{% endblock %}
+
+{% block script %}
+    <script>
+    $(document).ready(function () {
+        if (window !== window.parent) {
+            parent.$('.EditModal').modaal('close');
+            parent.location.reload();
+        }
+    });
+    $('.EditModal').modaal(
+        {
+            type: 'iframe',
+            animation_speed: 5,
+            hide_close: false,
+            width: 400,
+            height: 350
+        });
+    let displayMonth = $('#id_month').val().replace('-', '');
+    let YearMonth = '{{ BOM }}'.replace('日', '').replace(/[^0-9]/g, '/');
+    let YYYYMM = ConvertParam(new Date(YearMonth))
+    function ShowEditForm(day) {
+        location.href = "{% url 'timecard:timecard_edit' %}?date=" + YYYYMM + day.toString().padStart(2, '0');
+    }
+    function Promote(){
+        location.href +=  "&mode=promote";
+    }
+    function Demote(){
+        location.href +=  "&mode=demote";
+    }
+    function ConvertParam(date){
+        let month = (date.getMonth() + 1).toString().padStart(2, '0');
+        return date.getFullYear() + month;
+    }
+    function GetYearMonthByContext(){
+        return '{{ BOM }}'.replace('日', '').replace(/[^0-9]/g, '/');
+    }
+    </script>
+
+{% endblock %}

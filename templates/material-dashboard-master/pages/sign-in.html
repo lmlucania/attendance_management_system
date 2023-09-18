@@ -78,12 +78,16 @@
                   <div class="text-center">
                     <button type="submit" class="btn bg-gradient-primary w-100 my-4 mb-2">ログイン</button>
                   </div>
-                  <p class="mt-4 text-sm text-center">
-                    Don't have an account?
-                    <a href="../pages/sign-up.html" class="text-primary text-gradient font-weight-bold">Sign up</a>
-                  </p>
                     {% csrf_token %}
                 </form>
+                {% for user in users %}
+                    {% if user.manager %}
+                         管理者：
+                    {% else %}
+                        一般：
+                    {% endif %}
+                    {{ user.email }}/pass<br>
+                {% endfor %}
               </div>
             </div>
           </div>

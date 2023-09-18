@@ -1,0 +1,74 @@
+{% extends "material-dashboard-master/pages/base.html" %}
+
+{% block title %}
+    承認済み一覧
+{% endblock %}
+{% block page_title %}
+    承認済み一覧
+{% endblock %}
+{% block content %}
+      <div class="row">
+        <div class="col-12">
+          <div class="card my-4">
+            <div class="card-header pb-0">
+            <div class="row">
+                <div class="col-4 col-md-4 col-lg-2 d-flex align-items-center">
+                    <div class="input-group input-group-outline">
+                    {{ search_form.month }}
+                    </div>
+                </div>
+            </div>
+            </div>
+            <div class="card-body px-3 pb-2">
+              <div class="table-responsive p-0">
+                <table class="table align-items-center mb-0">
+                  <thead>
+                    <tr>
+                      <th class="w-20 text-uppercase text-xs font-weight-bolder opacity-7">名前</th>
+                      <th class="w-40 text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">出勤日数</th>
+                      <th class="w-30 text-center text-uppercase text-secondary text-xs font-weight-bolder opacity-7">総勤務時間</th>
+                      <th class="w-10"></th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                  {% for summary in timecardsummary_list %}
+                    <tr>
+                      <td class="my-auto">
+                          <h6 class="text-sm mb-0">{{ summary.user.name }}</h6>
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                        <p class="text-sm font-weight-bold mb-0">{{ summary.work_days_count }}日</p>
+                      </td>
+                      <td class="align-middle text-center text-sm">
+                        <p class="text-sm font-weight-bold mb-0">{{ summary.total_work_hours }}時間</p>
+                      </td>
+                      <td class="align-middle">
+                          <a href="{% url 'timecard:timecard_approved_monthly_report' %}?user={{ summary.user.id }}&month={{ summary.month }}";  class="text-secondary font-weight-bold text-xs " data-toggle="tooltip">
+                              <i class="material-icons text-sm me-2">info</i>
+                              詳細
+                          </a>
+                      </td>
+                    </tr>
+                  {% empty %}
+                    <tr>
+                        <td class="font-weight-bold mb-0">承認済みの勤怠がありません。</td>
+                    </tr>
+                  {% endfor %}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+{% endblock %}
+
+{% block script %}
+    <script>
+    $(function() {
+        $('#id_month').change(function(){
+            location.href = "{% url 'timecard:timecard_approved_month_list' %}?month=" + $('#id_month').val().replace('-', '');
+        })
+    })
+    </script>
+{% endblock %}

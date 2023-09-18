@@ -11,32 +11,29 @@
 {% block card_header %}
     <div class="card-header pb-0">
         <div class="row">
-        <div class="col-6 col-md-4 col-lg-2">
+        <div class="col-4 col-md-4 col-lg-3">
             <h6>
             申請者：　{{ user_name }}
             </h6>
             <p class="text-sm mb-0">
                 <span class="font-weight-bold ms-1">総勤務時間：{{ total_work_hours }} 時間</span>
             </p>
+            <p class="text-sm mb-0">
+                <span class="font-weight-bold ms-1">出勤日数：{{ work_days_count }} 日</span>
+            </p>
         </div>
-        <div class="col-6 col-md-4 col-lg-2">
-            {% if state == '1' %}
-                <a class="btn btn-info mb-0" data-bs-toggle="modal" data-bs-target="#promoteModal">
-                    承認する
-                </a>
-            {% elif state == '1' %}
-                <a class="btn btn-outline-info mb-0 disabled">
-                申請中
-                </a>
-            {% elif state == '2' %}
-                <a class="btn btn-outline-info mb-0 disabled">
-                承認済み
-                </a>
-            {% endif %}
+        <div class="col-4 col-md-4 col-lg-2">
+            <a class="btn btn-info mb-0" data-bs-toggle="modal" data-bs-target="#approvalModal">
+                　承認　
+            </a>
         </div>
-
+        <div class="col-4 col-md-4 col-lg-2">
+            <a class="btn btn-warning mb-0" data-bs-toggle="modal" data-bs-target="#remandModal">
+                　差戻　
+            </a>
+        </div>
         <!-- Modal -->
-        <div class="modal fade" id="promoteModal" tabindex="-1" role="dialog" aria-labelledby="promoteModalLabel" aria-hidden="true">
+        <div class="modal fade" id="approvalModal" tabindex="-1" role="dialog" aria-labelledby="promoteModalLabel" aria-hidden="true">
           <div class="modal-dialog modal-dialog-centered" role="document">
             <div class="modal-content">
               <div class="modal-header">
@@ -51,6 +48,25 @@
               <div class="modal-footer">
                 <a type="button" class="btn bg-gradient-secondary" data-bs-dismiss="modal">閉じる</a>
                 <a type="button" class="btn bg-gradient-info" href="javascript:Promote();">承認する</a>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="modal fade" id="remandModal" tabindex="-1" role="dialog" aria-labelledby="promoteModalLabel" aria-hidden="true">
+          <div class="modal-dialog modal-dialog-centered" role="document">
+            <div class="modal-content">
+              <div class="modal-header">
+                <h5 class="modal-title font-weight-normal" id="promoteModalLabel">{{ BOM|date:"Y年n月" }}の勤怠承認</h5>
+                <button type="button" class="btn-close text-dark" data-bs-dismiss="modal" aria-label="Close">
+                  <span aria-hidden="true">&times;</span>
+                </button>
+              </div>
+              <div class="modal-body">
+                {{ BOM|date:"Y年n月" }}の勤怠を差し戻します。よろしいですか？
+              </div>
+              <div class="modal-footer">
+                <a type="button" class="btn bg-gradient-secondary" data-bs-dismiss="modal">閉じる</a>
+                <a type="button" class="btn bg-gradient-warning" href="javascript:Demote();">差し戻す</a>
               </div>
             </div>
           </div>
@@ -92,6 +108,9 @@
     }
     function Promote(){
         location.href +=  "&mode=promote";
+    }
+    function Demote(){
+        location.href +=  "&mode=demote";
     }
     function ConvertParam(date){
         let month = (date.getMonth() + 1).toString().padStart(2, '0');
