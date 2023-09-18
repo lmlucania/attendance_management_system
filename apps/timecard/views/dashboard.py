@@ -1,18 +1,20 @@
 from datetime import timedelta
 
 from dateutil.relativedelta import relativedelta
+from django.db.models import Q
 from django.shortcuts import redirect
 from django.urls import reverse
 from django.utils import timezone
 
 from apps.timecard.models import TimeCard, TimeCardSummary
+from apps.accounts.models import User
+
 
 from .base import (TemplateView, calculation_hours_daily,
                    get_daily_stamps_info, get_work_days_by_qs, timedelta2str)
 
 
 class DashboardView(TemplateView):
-    # template_name = 'dashboard.html'
     template_name = "material-dashboard-master/pages/dashboard.html"
 
     def dispatch(self, request, *args, **kwargs):
@@ -53,6 +55,7 @@ class DashboardView(TemplateView):
         context["stamped_time"] = self._get_stamped_time()
         context["bar_chart_data"] = self._get_bar_chart_data()
         context["line_graph_data"] = self._get_line_graph_data()
+        context['work_condition'] = self._get_work_condition()
 
         return context
 
@@ -96,7 +99,7 @@ class DashboardView(TemplateView):
         this_monday = self.today - relativedelta(days=DOW_int - 1)
         this_sunday = this_monday + relativedelta(days=6)
         this_week_stamps_qs = TimeCard.objects.filter(
-            user=self.request.user, stamped_time__gte=this_monday, stamped_time__lte=this_sunday
+            user=self.request.user, stamped_time__gte=this_monday, stamped_time__lt=this_sunday + relativedelta(days=1)
         )
         work_days = get_work_days_by_qs(this_week_stamps_qs)
         bar_chart_latest_updated_at = (
@@ -185,3 +188,21 @@ class DashboardView(TemplateView):
             total_work_hours += work_hours
 
         return timedelta2str(total_work_hours)
+
+    def _get_work_condition(self):
+        users = User.objects.exclude(id=self.request.user.id).order_by('-manager')
+        at_work_users_info = TimeCard.objects.filter((Q(kind=TimeCard.Kind.IN) | Q(kind=TimeCard.Kind.OUT)), stamped_time__gte=self.today, stamped_time__lt=self.today + relativedelta(days=1)).\
+            distinct().values_list('user', 'kind', 'stamped_time')
+
+        condition = []
+        for user in users:
+            start_work = ''
+            end_work = ''
+            if at_work_users_info.filter(user=user, kind=TimeCard.Kind.IN):
+                start_work = at_work_users_info.get(user=user, kind=TimeCard.Kind.IN)[2]
+            elif at_work_users_info.filter(user=user, kind=TimeCard.Kind.OUT):
+                start_work = at_work_users_info.get(user=user, kind=TimeCard.Kind.OUT)[2]
+
+            condition.append({'name': user.name, 'is_manager': user.is_manager, 'start_work': start_work, 'end_work': end_work})
+
+        return condition
