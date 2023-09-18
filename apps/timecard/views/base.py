@@ -186,7 +186,7 @@ class TimeCardBaseMonthlyReportView(TemplateView):
         return work_days
 
     def _timedelta2str(self, timedelta):
-        if type(timedelta) == str:
+        if isinstance(timedelta, str):
             return timedelta
 
         pattern = r"((0?|1)[0-9]|2[0-3]):[0-5][0-9]"

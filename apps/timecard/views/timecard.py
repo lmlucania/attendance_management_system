@@ -172,7 +172,7 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
             )
 
     def _format(self, timedelta):
-        if type(timedelta) == str:
+        if isinstance(timedelta, str):
             return timedelta
 
         pattern = r"^((0?|1)[0-9]|2[0-3]):[0-5][0-9]$"
@@ -455,7 +455,7 @@ class TimeCardImportView(ExcelHandleView):
                 ws[cell.coordinate].alignment = Alignment(horizontal="center", vertical="center", wrapText=True)
 
     def _cell_value2time(self, cell_value):
-        if cell_value is None or type(cell_value) == time:
+        if cell_value is None or isinstance(cell_value, time):
             return cell_value
 
         try:
@@ -514,7 +514,7 @@ class TimeCardImportView(ExcelHandleView):
             self.logger.error(f"{e}", exc_info=True)
 
     def _make_stamped_time(self, stamped_day, cell_value):
-        if type(cell_value) != time:
+        if not isinstance(cell_value, time):
             cell_value = datetime.strptime(cell_value, "%H:%M").time()
         return stamped_day + relativedelta(hours=cell_value.hour, minutes=cell_value.minute)
 
