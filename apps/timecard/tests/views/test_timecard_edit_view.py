@@ -12,19 +12,34 @@ from ..base import BaseTestCase
 class TestTimeCardEditView(BaseTestCase):
     url = reverse("timecard:timecard_edit")
     monthly_report_url = reverse("timecard:timecard_monthly_report")
-    template = "timecard/form.html"
+    template = "material-dashboard-master/pages/form.html"
     monthly_report_template = "material-dashboard-master/pages/new_list.html"
 
     def test_get_not_login(self):
+        """
+        ログイン前に画面にアクセスする
+        ログイン画面にリダイレクトされることを確認
+        :return:
+        """
         super().base_test_get_not_login()
 
     def test_get_failure_not_param(self):
+        """
+        クエリパラメーターなしでアクセスする
+        セッションのエラーメッセージを確認
+        :return:
+        """
         response = self.client.get(self.url)
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.template, response.templates[0].name)
         self.assertEqual("不正な操作を検知しました", self.client_session.get("error"))
 
     def test_get_failure_next_month(self):
+        """
+        クエリパラメーターに来月の日付を指定してアクセスする
+        セッションのエラーメッセージを確認
+        :return:
+        """
         next_month_YM = (datetime.today() + relativedelta(day=1, months=1)).strftime("%Y%m%d")
         response = self.client.get(self.url, {"date": next_month_YM})
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
@@ -32,6 +47,11 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual("来月以降の情報は編集できません", self.client_session.get("error"))
 
     def test_get_failure_exist_promoted_stamp(self):
+        """
+        申請中の日付をクエリパラメーターに指定してアクセスする
+        セッションのエラーメッセージを確認
+        :return:
+        """
         TimeCard.objects.all().update(state=TimeCard.State.PROCESSING)
 
         response = self.client.get(self.url, {"date": "20230102"})
@@ -40,6 +60,10 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual("申請中および承認済みの情報は更新できません", self.client_session.get("error"))
 
     def test_not_initial_data(self):
+        """
+        フォームで初期値を持っていないことを確認
+        :return:
+        """
         target_date_YMD = "20230101"
         target_date = self.str2datetime(target_date_YMD + "00:00:00", "%Y%m%d%H:%M:%S")
         response = self.client.get(self.url, {"date": target_date_YMD})
@@ -62,6 +86,10 @@ class TestTimeCardEditView(BaseTestCase):
             self.assertIsNone(form.initial.get("DELETE"))
 
     def test_initial_data(self):
+        """
+        フォームで初期値を持っていることを確認
+        :return:
+        """
         target_date_YMD = "20230102"
         target_date = self.str2datetime(target_date_YMD + "00:00:00", "%Y%m%d%H:%M:%S")
         response = self.client.get(self.url, {"date": target_date_YMD})
@@ -94,6 +122,11 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertIsNone(formset[3].initial.get("DELETE"))
 
     def test_create_success(self):
+        """
+        登録処理（入力チェックOK）
+        登録されていることを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "0",
@@ -125,6 +158,12 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual("更新しました", self.client.session["success"])
 
     def test_create_failure_by_validation(self):
+        """
+        登録処理（入力チェックNG）
+        登録されないことを確認
+        クエリパラメーターなしの時にリダイレクトされることを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "2",
@@ -149,6 +188,11 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual(0, TimeCard.objects.all().count())
 
     def test_create_failure_by_validation_normally_param(self):
+        """
+        登録処理（入力チェックNG）
+        登録されないことを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "2",
@@ -169,6 +213,11 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual(0, TimeCard.objects.all().count())
 
     def test_delete(self):
+        """
+        削除処理
+        削除されていることを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "4",
@@ -207,6 +256,12 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual("更新しました", self.client.session["success"])
 
     def test_update_success(self):
+        """
+        更新処理（入力チェックOK）
+        更新されていることを確認
+        セッションのメッセージを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "4",
@@ -249,6 +304,11 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual("更新しました", self.client.session["success"])
 
     def test_update_failure_by_validation(self):
+        """
+        更新処理（入力チェックNG）
+        更新されていないことを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "4",
@@ -292,6 +352,12 @@ class TestTimeCardEditView(BaseTestCase):
         self.assertEqual(self.str2datetime("2023/01/02 13:00", "%Y/%m/%d %H:%M"), stamp_break_out.stamped_time)
 
     def test_update_failure_exist_promoted_stamp(self):
+        """
+        更新処理
+        申請中の打刻情報を更新できないことを確認
+        セッションのエラーメッセージを確認
+        :return:
+        """
         post_data = {
             "form-TOTAL_FORMS": "4",
             "form-INITIAL_FORMS": "4",

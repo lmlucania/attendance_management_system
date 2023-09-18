@@ -6,6 +6,8 @@ from .test_timecard_process_month_list_view import \
     TestTimeCardProcessMonthListView
 from .test_timecard_process_monthly_report_view import \
     TestTimeCardProcessMonthlyReportView
+from .test_timecard_approved_month_list_view import TestTimeCardApprovedMonthListView
+from .test_timecard_approved_monthly_report_view import TestTimeCardApprovedMonthlyReportView
 
 __all__ = [
     "TestTimeCardEditView",
@@ -14,4 +16,6 @@ __all__ = [
     "TestTimeCardMonthlyReportView",
     "TestTimeCardProcessMonthListView",
     "TestTimeCardProcessMonthlyReportView",
+    'TestTimeCardApprovedMonthListView',
+    'TestTimeCardApprovedMonthlyReportView'
 ]

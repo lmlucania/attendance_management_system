@@ -15,9 +15,19 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
     redirect_template = "material-dashboard-master/pages/tables_process.html"
 
     def test_get_not_login(self):
+        """
+        ログイン前に画面にアクセスする
+        ログイン画面にリダイレクトされることを確認
+        :return:
+        """
         super().base_test_get_not_login()
 
     def test_get_not_superuser(self):
+        """
+        一般ユーザーで画面にアクセスする
+        403エラーになることを確認
+        :return:
+        """
         self.client.logout()
         self.client.force_login(user=self.user)
 
@@ -25,6 +35,12 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
         self.assertEqual(HTTPStatus.FORBIDDEN.value, response.status_code)
 
     def test_get_login_no_param(self, **params):
+        """
+        クエリパラメーターなしでアクセスする
+        承認待ち一覧画面にリダイレクトされることを確認
+        エラーメッセージを確認
+        :return:
+        """
         response = self.client.get(self.url, params, follow=True)
         self.assertEqual("不正な操作を検知しました", response.context_data["error"])
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
@@ -33,17 +49,35 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
         self.assertEqual(HTTPStatus.FOUND.value, response.redirect_chain[0][1])
 
     def test_get_login_has_error_param(self):
+        """
+        不正なクエリパラメーターでアクセスする
+        承認待ち一覧画面にリダイレクトされることを確認
+        エラーメッセージを確認
+        :return:
+        """
         self.test_get_login_no_param(a="a")
 
     def test_normally_param_not_record(self):
+        """
+        `申請中`のデータが0件
+        承認待ち一覧画面にリダイレクトされることを確認
+        エラーメッセージを確認
+        :return:
+        """
+        TimeCard.objects.all().delete()
+
         response = self.client.get(self.url, {"user": self.user.id, "month": "202301"}, follow=True)
-        self.assertEqual("申請中の勤怠が存在しません", response.context_data["error"])
+        self.assertEqual("勤怠情報が存在しません", response.context_data["error"])
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.redirect_template, response.templates[0].name)
         self.assertEqual(self.redirect_url, response.redirect_chain[0][0])
         self.assertEqual(HTTPStatus.FOUND.value, response.redirect_chain[0][1])
 
     def test_normally_param_exist_record(self):
+        """
+        `申請中`のデータが表示されることを確認
+        :return:
+        """
         TimeCard.objects.all().update(state=TimeCard.State.PROCESSING)
 
         response = self.client.get(self.url, {"user": self.user.id, "month": "202301"}, follow=True)
@@ -77,11 +111,17 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
         self.assertEqual("0:00", monthly_report[2]["break_hours"])
 
     def test_promote_success(self):
+        """
+        承認処理
+        承認待ち一覧画面にリダイレクトされることを確認
+        打刻情報のステータスが`承認済み`に変更されていることを確認
+        :return:
+        """
         TimeCard.objects.all().update(state=TimeCard.State.PROCESSING)
 
         response = self.client.get(self.url, {"user": self.user.id, "month": "202301", "mode": "promote"}, follow=True)
-        self.assertEqual("ステータスを承認済みに更新しました", response.context_data["success"])
-        self.assertEqual(0, len(response.context_data["process_month_list"]))
+        self.assertEqual("承認しました", response.context_data["success"])
+        self.assertEqual(0, len(response.context_data["month_list"]))
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.redirect_url, response.redirect_chain[0][0])
         self.assertEqual(HTTPStatus.FOUND.value, response.redirect_chain[0][1])
@@ -91,9 +131,37 @@ class TestTimeCardProcessMonthlyReportView(BaseTestCaseNeedSuperUser):
         self.assertEqual(TimeCard.State.APPROVED, TimeCard.objects.get(kind=TimeCard.Kind.ENTER_BREAK).state)
         self.assertEqual(TimeCard.State.APPROVED, TimeCard.objects.get(kind=TimeCard.Kind.END_BREAK).state)
 
-    def test_promote_failure_not_exist_stamp(self):
-        response = self.client.get(self.url, {"month": "202302", "mode": "promote"}, follow=True)
+    def test_promote_failure_own_record(self):
+        """
+        ログインユーザーの打刻情報を承認処理する
+        承認待ち一覧画面にリダイレクトされることを確認
+        エラーメッセージを確認
+        :return:
+        """
+        response = self.client.get(self.url, {"user": self.super_user, "month": "202301", "mode": "promote"}, follow=True)
         self.assertEqual("不正な操作を検知しました", response.context_data["error"])
+        self.assertEqual(HTTPStatus.OK.value, response.status_code)
+        self.assertEqual(self.redirect_template, response.templates[0].name)
+        self.assertEqual(self.redirect_url, response.redirect_chain[0][0])
+        self.assertEqual(HTTPStatus.FOUND.value, response.redirect_chain[0][1])
+
+    def test_demote_success(self):
+        """
+        差戻処理
+        承認待ち一覧画面にリダイレクトされることを確認
+        打刻情報のステータスが`新規`に変更されていることを確認
+        :return:
+        """
+        TimeCard.objects.all().update(state=TimeCard.State.PROCESSING)
+
+        response = self.client.get(self.url, {"user": self.user.id, "month": "202301", "mode": "demote"}, follow=True)
+        self.assertEqual("差し戻しました", response.context_data["success"])
+        self.assertEqual(0, len(response.context_data["month_list"]))
         self.assertEqual(HTTPStatus.OK.value, response.status_code)
         self.assertEqual(self.redirect_url, response.redirect_chain[0][0])
         self.assertEqual(HTTPStatus.FOUND.value, response.redirect_chain[0][1])
+
+        self.assertEqual(TimeCard.State.NEW, TimeCard.objects.get(kind=TimeCard.Kind.IN).state)
+        self.assertEqual(TimeCard.State.NEW, TimeCard.objects.get(kind=TimeCard.Kind.OUT).state)
+        self.assertEqual(TimeCard.State.NEW, TimeCard.objects.get(kind=TimeCard.Kind.ENTER_BREAK).state)
+        self.assertEqual(TimeCard.State.NEW, TimeCard.objects.get(kind=TimeCard.Kind.END_BREAK).state)
