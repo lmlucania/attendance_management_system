@@ -49,7 +49,7 @@ class TestTimeCardExportView(BaseTestCase):
         self.assertTrue(response.has_header("Content-Disposition"))
 
         response_header = response.headers.get("Content-Disposition")
-        self.assertIn("タイムカード_2023年05月.xlsx", urllib.parse.unquote(response_header))
+        self.assertIn("勤怠_テスト2_2023年05月.xlsx", urllib.parse.unquote(response_header))
 
     def test_content_no_record(self):
         """

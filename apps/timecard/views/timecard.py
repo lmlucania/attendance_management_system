@@ -122,7 +122,7 @@ class TimeCardExportView(TimeCardBaseMonthlyReportView, ExcelHandleView):
             return redirect(reverse("timecard:timecard_monthly_report"))
 
         wb = self._create_wb()
-        filename = "タイムカード_" + self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月") + ".xlsx"
+        filename = "勤怠_" + request.user.name.replace(' ', '_') + '_' + self.EOM_by_url.strftime("%Y{0}%m{1}").format(*"年月") + ".xlsx"
         response = HttpResponse(content_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet")
         response["Content-Disposition"] = "attachment; filename={}".format(urllib.parse.quote(filename))
         wb.save(response)
