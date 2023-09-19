@@ -13,7 +13,7 @@ with Diagram("web_service", show=False):
         Docker()
 
         with Cluster("Container: web"):
-            nginx = Nginx()
+            nginx = Nginx("Reverse Proxy")
 
         with Cluster("Container: app"):
             python = Python()
