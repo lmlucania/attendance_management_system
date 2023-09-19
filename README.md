@@ -1,5 +1,11 @@
 # 勤怠管理システム
 
+## システム構成図
+![INFRA STRUCTURE IMAGE](infra_structure.png)
+
+## 全体の構成
+![WEB SERVICE](web_service.png)
+
 ## 開発環境構築手順
 
 DBを作成する。
