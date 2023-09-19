@@ -144,6 +144,7 @@
           </div>
         </div>
       </div>
+      {% if request.user.manager %}
       <div class="row mb-4">
         <div class="card">
             <div class="card-header pb-0">
@@ -221,6 +222,7 @@
             </div>
           </div>
       </div>
+      {% endif %}
 {% endblock %}
 {% block script %}
   <script>
