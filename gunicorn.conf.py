@@ -1,4 +1,5 @@
-import os, pathlib
+import os
+import pathlib
 
 template_root = os.path.join(os.getcwd(), "templates")
 template_list = []
