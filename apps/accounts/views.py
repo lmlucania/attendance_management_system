@@ -27,4 +27,3 @@ class LoginView(views.LoginView):
 
 class LogoutView(views.LogoutView):
     next_page = "accounts:login"
-
